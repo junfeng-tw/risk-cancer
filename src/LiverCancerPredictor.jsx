@@ -2,6 +2,16 @@
 import { useState } from "react";
 
 export default function LiverCancerPredictor() {
+  // 定义参数范围限制
+  const PARAM_LIMITS = {
+    kcnq1: { min: 0, max: 10, step: 0.001 },
+    linc01785: { min: 0, max: 10, step: 0.001 },
+    age: { min: 18, max: 120, step: 1 },
+    afp: { min: 0, max: 1000000, step: 0.1 }, // AFP可以很高
+    alb: { min: 10, max: 60, step: 0.1 }, // 白蛋白正常范围约35-55 g/L
+    ggt: { min: 0, max: 1000, step: 1 } // γ-GT正常范围约10-60 U/L
+  };
+
   const [inputs, setInputs] = useState({
     kcnq1: "",
     linc01785: "",
@@ -10,6 +20,7 @@ export default function LiverCancerPredictor() {
     alb: "",
     ggt: ""
   });
+  const [errors, setErrors] = useState({});
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -18,6 +29,9 @@ export default function LiverCancerPredictor() {
   }
 
   function predict(lncRNA_score, age, afp, alb, ggt) {
+    // Convert AFP to binary (0/1) based on 10 ng/mL threshold
+    const afpBinary = afp > 10 ? 1 : 0;
+    
     const intercept = -2.5792;
     const coef = {
       lncRNA: 0.8871,
@@ -30,30 +44,67 @@ export default function LiverCancerPredictor() {
       intercept +
       coef.lncRNA * lncRNA_score +
       coef.age * age +
-      coef.afp * afp +
+      coef.afp * afpBinary + // Use binary AFP
       coef.alb * alb +
       coef.ggt * ggt;
     return 1 / (1 + Math.exp(-logit));
   }
 
+  const validateInput = (name, value) => {
+    const limits = PARAM_LIMITS[name];
+    if (value === "") return "This field is required";
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return "Must be a valid number";
+    if (numValue < limits.min) return `Minimum value is ${limits.min}`;
+    if (numValue > limits.max) return `Maximum value is ${limits.max}`;
+    return null;
+  };
+
   const handleChange = (e) => {
-    setInputs({ ...inputs, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setInputs(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateInput(name, value);
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  const getInputHint = (name) => {
+    const limits = PARAM_LIMITS[name];
+    return `Range: ${limits.min} - ${limits.max}`;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const values = Object.values(inputs).map(parseFloat);
-    if (values.some(isNaN)) {
+    // Validate all inputs
+    const newErrors = {};
+    Object.keys(inputs).forEach(name => {
+      const error = validateInput(name, inputs[name]);
+      if (error) newErrors[name] = error;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       setResult({
         type: "error",
-        message: "Please fill in all required parameters with valid numerical values."
+        message: "Please correct the errors in the form."
       });
       setLoading(false);
       return;
     }
 
+    // Convert inputs to numbers
+    const values = Object.values(inputs).map(parseFloat);
+    
     // Simulate ML processing time
     await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -65,7 +116,8 @@ export default function LiverCancerPredictor() {
       type: "success",
       probability: probability,
       score: score,
-      riskLevel: probability < 0.3 ? "Low" : probability < 0.7 ? "Moderate" : "High"
+      riskLevel: probability < 0.3 ? "Low" : probability < 0.7 ? "Moderate" : "High",
+      afpStatus: afp > 10 ? "Elevated" : "Normal"
     });
     setLoading(false);
   };
@@ -91,25 +143,45 @@ export default function LiverCancerPredictor() {
                   <span className="text-gray-700 font-medium">KCNQ1-AS1 Expression Level</span>
                   <input
                     type="number"
-                    step="any"
+                    step={PARAM_LIMITS.kcnq1.step}
+                    min={PARAM_LIMITS.kcnq1.min}
+                    max={PARAM_LIMITS.kcnq1.max}
                     name="kcnq1"
                     value={inputs.kcnq1}
                     onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    onBlur={handleBlur}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.kcnq1 ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     placeholder="Enter KCNQ1-AS1 value"
                   />
+                  {errors.kcnq1 ? (
+                    <p className="mt-1 text-sm text-red-600">{errors.kcnq1}</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-500">{getInputHint('kcnq1')}</p>
+                  )}
                 </label>
                 <label className="block">
                   <span className="text-gray-700 font-medium">LINC01785 Expression Level</span>
                   <input
                     type="number"
-                    step="any"
+                    step={PARAM_LIMITS.linc01785.step}
+                    min={PARAM_LIMITS.linc01785.min}
+                    max={PARAM_LIMITS.linc01785.max}
                     name="linc01785"
                     value={inputs.linc01785}
                     onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    onBlur={handleBlur}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.linc01785 ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     placeholder="Enter LINC01785 value"
                   />
+                  {errors.linc01785 ? (
+                    <p className="mt-1 text-sm text-red-600">{errors.linc01785}</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-500">{getInputHint('linc01785')}</p>
+                  )}
                 </label>
               </div>
 
@@ -119,49 +191,91 @@ export default function LiverCancerPredictor() {
                   <span className="text-gray-700 font-medium">Age (years)</span>
                   <input
                     type="number"
-                    step="any"
+                    step={PARAM_LIMITS.age.step}
+                    min={PARAM_LIMITS.age.min}
+                    max={PARAM_LIMITS.age.max}
                     name="age"
                     value={inputs.age}
                     onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    onBlur={handleBlur}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.age ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     placeholder="Enter patient age"
                   />
+                  {errors.age ? (
+                    <p className="mt-1 text-sm text-red-600">{errors.age}</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-500">{getInputHint('age')}</p>
+                  )}
                 </label>
                 <label className="block">
                   <span className="text-gray-700 font-medium">AFP Level (ng/mL)</span>
                   <input
                     type="number"
-                    step="any"
+                    step={PARAM_LIMITS.afp.step}
+                    min={PARAM_LIMITS.afp.min}
+                    max={PARAM_LIMITS.afp.max}
                     name="afp"
                     value={inputs.afp}
                     onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    onBlur={handleBlur}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.afp ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     placeholder="Enter AFP value"
                   />
+                  {errors.afp ? (
+                    <p className="mt-1 text-sm text-red-600">{errors.afp}</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-500">
+                      {getInputHint('afp')} (Values >10 ng/mL considered elevated)
+                    </p>
+                  )}
                 </label>
                 <label className="block">
                   <span className="text-gray-700 font-medium">Albumin (g/L)</span>
                   <input
                     type="number"
-                    step="any"
+                    step={PARAM_LIMITS.alb.step}
+                    min={PARAM_LIMITS.alb.min}
+                    max={PARAM_LIMITS.alb.max}
                     name="alb"
                     value={inputs.alb}
                     onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    onBlur={handleBlur}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.alb ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     placeholder="Enter albumin value"
                   />
+                  {errors.alb ? (
+                    <p className="mt-1 text-sm text-red-600">{errors.alb}</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-500">{getInputHint('alb')}</p>
+                  )}
                 </label>
                 <label className="block">
                   <span className="text-gray-700 font-medium">γ-GT (U/L)</span>
                   <input
                     type="number"
-                    step="any"
+                    step={PARAM_LIMITS.ggt.step}
+                    min={PARAM_LIMITS.ggt.min}
+                    max={PARAM_LIMITS.ggt.max}
                     name="ggt"
                     value={inputs.ggt}
                     onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    onBlur={handleBlur}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.ggt ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     placeholder="Enter γ-GT value"
                   />
+                  {errors.ggt ? (
+                    <p className="mt-1 text-sm text-red-600">{errors.ggt}</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-500">{getInputHint('ggt')}</p>
+                  )}
                 </label>
               </div>
             </div>
@@ -196,7 +310,7 @@ export default function LiverCancerPredictor() {
               ) : (
                 <div className="space-y-2">
                   <h3 className="text-xl font-semibold text-gray-900">Analysis Results</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-white rounded-lg shadow">
                       <p className="text-sm text-gray-500">Risk Probability</p>
                       <p className="text-2xl font-bold text-blue-600">
@@ -217,6 +331,14 @@ export default function LiverCancerPredictor() {
                         'text-red-600'
                       }`}>
                         {result.riskLevel}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg shadow">
+                      <p className="text-sm text-gray-500">AFP Status</p>
+                      <p className={`text-2xl font-bold ${
+                        result.afpStatus === 'Normal' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {result.afpStatus}
                       </p>
                     </div>
                   </div>
