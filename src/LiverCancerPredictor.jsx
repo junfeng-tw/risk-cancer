@@ -26,6 +26,8 @@ export default function LiverCancerPredictor() {
   const [historicalData, setHistoricalData] = useState([]);
   const [showTreatmentOptions, setShowTreatmentOptions] = useState(false);
   const [showCompetingRisks, setShowCompetingRisks] = useState(false);
+  const [patientId, setPatientId] = useState("");
+  const [showPatientIdModal, setShowPatientIdModal] = useState(false);
 
   // Risk stratification data with survival rates
   const RISK_STRATIFICATION = {
@@ -201,6 +203,13 @@ export default function LiverCancerPredictor() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // If no patient ID is set, show the patient ID modal
+    if (!patientId) {
+      setShowPatientIdModal(true);
+      return;
+    }
+
     setLoading(true);
 
     // Reset modals when submitting new data
@@ -245,18 +254,27 @@ export default function LiverCancerPredictor() {
       riskLevel: riskLevel,
       afpStatus: afpStatus,
       date: new Date().toISOString(),
-      patientAge: age
+      patientAge: age,
+      patientId: patientId
     };
 
-    // Add to historical data for trend analysis
-    setHistoricalData(prev => [...prev, {
-      date: new Date().toISOString(),
-      probability: probability,
-      score: score,
-      riskLevel: riskLevel,
-      afp: afp,
-      age: age
-    }]);
+    // Add to historical data for trend analysis - only for the current patient
+    setHistoricalData(prev => [
+      ...prev.filter(item => item.patientId === patientId), // Keep only current patient's previous data
+      {
+        date: new Date().toISOString(),
+        probability: probability,
+        score: score,
+        riskLevel: riskLevel,
+        kcnq1: kcnq1,
+        linc01785: linc01785,
+        afp: afp,
+        alb: alb,
+        ggt: ggt,
+        age: age,
+        patientId: patientId
+      }
+    ]);
 
     // Show competing risks automatically for elderly patients
     if (age > 65) {
@@ -519,11 +537,14 @@ export default function LiverCancerPredictor() {
 
   // Component for dynamic risk assessment (trend analysis)
   const DynamicRiskAssessment = ({ historicalData }) => {
-    if (historicalData.length < 2) {
+    // Filter data to only include current patient
+    const patientData = historicalData.filter(item => item.patientId === patientId);
+
+    if (patientData.length < 2) {
       return (
         <div className="mt-6 p-4 bg-white rounded-lg shadow-lg">
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Dynamic Risk Assessment</h3>
-          <p className="text-sm text-gray-600">At least two assessments are needed to show risk trends over time.</p>
+          <p className="text-sm text-gray-600">At least two assessments for patient ID {patientId} are needed to show risk trends over time.</p>
         </div>
       );
     }
@@ -532,13 +553,13 @@ export default function LiverCancerPredictor() {
       <div className="mt-6 p-4 bg-white rounded-lg shadow-lg">
         <h3 className="text-xl font-semibold text-gray-900 mb-4">Dynamic Risk Assessment</h3>
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">Risk trend based on {historicalData.length} assessments:</p>
+          <p className="text-sm text-gray-600">Risk trend based on {patientData.length} assessments for patient ID {patientId}:</p>
 
           <div className="h-64 w-full">
             <div className="relative h-full w-full">
               {/* Simple visualization of risk trend */}
               <div className="absolute inset-0 flex items-end">
-                {historicalData.map((data, index) => (
+                {patientData.map((data, index) => (
                   <div
                     key={index}
                     className="w-full h-full flex flex-col justify-end items-center"
@@ -566,10 +587,10 @@ export default function LiverCancerPredictor() {
           <div className="mt-4">
             <h4 className="text-md font-semibold text-gray-900">Trend Analysis:</h4>
             <p className="text-sm text-gray-600 mt-1">
-              {historicalData.length > 2 &&
-                historicalData[historicalData.length - 1].probability > historicalData[historicalData.length - 2].probability
+              {patientData.length > 2 &&
+                patientData[patientData.length - 1].probability > patientData[patientData.length - 2].probability
                 ? "⚠️ Risk is increasing. More frequent monitoring may be needed."
-                : historicalData[historicalData.length - 1].probability < historicalData[historicalData.length - 2].probability
+                : patientData[patientData.length - 1].probability < patientData[patientData.length - 2].probability
                 ? "✅ Risk is decreasing. Current approach appears effective."
                 : "Risk level is stable."}
             </p>
@@ -579,6 +600,208 @@ export default function LiverCancerPredictor() {
             <p>* Dynamic risk assessment allows for personalized monitoring schedules based on individual risk trajectories.</p>
             <p>* Consistent increases in risk may warrant more aggressive intervention strategies.</p>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Get unique patient IDs from historical data
+  const getUniquePatientIds = () => {
+    const uniqueIds = new Set();
+    historicalData.forEach(data => {
+      if (data.patientId) {
+        uniqueIds.add(data.patientId);
+      }
+    });
+    return Array.from(uniqueIds);
+  };
+
+  // Component for patient ID input modal
+  const PatientIdModal = () => {
+    const [inputPatientId, setInputPatientId] = useState("");
+    const [error, setError] = useState("");
+    const [viewMode, setViewMode] = useState("input"); // "input" or "select"
+
+    // Get unique patient IDs
+    const uniquePatientIds = getUniquePatientIds();
+
+    const handleSubmitPatientId = () => {
+      if (!inputPatientId.trim()) {
+        setError("Please enter a valid patient ID");
+        return;
+      }
+
+      setPatientId(inputPatientId.trim());
+      setShowPatientIdModal(false);
+      // Automatically submit the form after setting patient ID
+      setTimeout(() => document.getElementById("risk-assessment-form").requestSubmit(), 100);
+    };
+
+    const handleNewPatient = () => {
+      // Generate a random patient ID
+      const newId = "P" + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      setPatientId(newId);
+      setShowPatientIdModal(false);
+      // Automatically submit the form after setting patient ID
+      setTimeout(() => document.getElementById("risk-assessment-form").requestSubmit(), 100);
+    };
+
+    const handleSelectPatient = (selectedId) => {
+      setPatientId(selectedId);
+      setShowPatientIdModal(false);
+      // Load the last assessment for this patient
+      const patientData = historicalData.filter(item => item.patientId === selectedId);
+      if (patientData.length > 0) {
+        // Get the most recent assessment
+        const latestAssessment = patientData.sort((a, b) =>
+          new Date(b.date) - new Date(a.date)
+        )[0];
+
+        // Pre-fill the form with the latest data
+        setInputs({
+          kcnq1: latestAssessment.kcnq1 || "",
+          linc01785: latestAssessment.linc01785 || "",
+          age: latestAssessment.age || "",
+          afp: latestAssessment.afp || "",
+          alb: latestAssessment.alb || "",
+          ggt: latestAssessment.ggt || ""
+        });
+
+        // Set the result to show the latest assessment
+        setResult({
+          type: "success",
+          probability: latestAssessment.probability,
+          score: latestAssessment.score,
+          riskLevel: latestAssessment.riskLevel,
+          afpStatus: latestAssessment.afp > 10 ? "Elevated" : "Normal",
+          date: latestAssessment.date,
+          patientAge: latestAssessment.age,
+          patientId: selectedId
+        });
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Patient Identification</h3>
+
+          {/* Toggle between input and select modes */}
+          <div className="mb-4 flex border rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode("input")}
+              className={`flex-1 py-2 ${viewMode === "input" ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+            >
+              New/Enter ID
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("select")}
+              className={`flex-1 py-2 ${viewMode === "select" ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+              disabled={uniquePatientIds.length === 0}
+            >
+              Select Existing Patient
+            </button>
+          </div>
+
+          {viewMode === "input" ? (
+            <>
+              <p className="text-sm text-gray-600 mb-4">
+                Please enter a patient ID to continue. This ensures that risk trend analysis is accurate for individual patients.
+              </p>
+
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2" htmlFor="patientId">
+                  Patient ID
+                </label>
+                <input
+                  type="text"
+                  id="patientId"
+                  value={inputPatientId}
+                  onChange={(e) => {
+                    setInputPatientId(e.target.value);
+                    setError("");
+                  }}
+                  className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  placeholder="Enter existing patient ID"
+                />
+                {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+              </div>
+
+              <div className="flex justify-between">
+                <button
+                  type="button"
+                  onClick={handleNewPatient}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  New Patient
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitPatientId}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Continue
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-600 mb-4">
+                Select a previously assessed patient to view or update their risk assessment.
+              </p>
+
+              <div className="mb-4 max-h-60 overflow-y-auto">
+                <ul className="divide-y divide-gray-200">
+                  {uniquePatientIds.map((id) => {
+                    // Get the most recent assessment for this patient
+                    const patientData = historicalData.filter(item => item.patientId === id);
+                    const latestAssessment = patientData.sort((a, b) =>
+                      new Date(b.date) - new Date(a.date)
+                    )[0];
+
+                    return (
+                      <li key={id} className="py-3 hover:bg-gray-50 cursor-pointer" onClick={() => handleSelectPatient(id)}>
+                        <div className="flex justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-blue-600">Patient ID: {id}</p>
+                            <p className="text-xs text-gray-500">
+                              Last assessed: {new Date(latestAssessment.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-sm font-medium ${latestAssessment.riskLevel === 'Low' ? 'text-green-600' : latestAssessment.riskLevel === 'Moderate' ? 'text-yellow-600' : 'text-red-600'}`}>
+                              {latestAssessment.riskLevel} Risk
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(latestAssessment.probability * 100).toFixed(1)}% probability
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {uniquePatientIds.length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No previous patients found. Please create a new patient.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleNewPatient}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  Create New Patient
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -600,7 +823,40 @@ export default function LiverCancerPredictor() {
         </div>
 
         <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {patientId && (
+            <div className="mb-4 flex justify-between items-center">
+              <div>
+                <span className="text-sm text-gray-500">Patient ID:</span>
+                <span className="ml-2 text-sm font-medium text-blue-600">{patientId}</span>
+                {getUniquePatientIds().length > 1 && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    ({getUniquePatientIds().length} patients in database)
+                  </span>
+                )}
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPatientIdModal(true)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  View Patient History
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPatientId("");
+                    setResult(null);
+                    setShowPatientIdModal(true);
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Change Patient
+                </button>
+              </div>
+            </div>
+          )}
+          <form id="risk-assessment-form" onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-gray-700">EV-derived lncRNA Biomarkers</h2>
@@ -816,9 +1072,9 @@ export default function LiverCancerPredictor() {
                   {/* Personalized Clinical Recommendations */}
                   <ClinicalRecommendations riskLevel={result.riskLevel} />
 
-                  {/* Dynamic Risk Assessment (if multiple assessments exist) */}
-                  {historicalData.length > 0 && (
-                    <DynamicRiskAssessment historicalData={historicalData} />
+                  {/* Dynamic Risk Assessment (if patient has multiple assessments) */}
+                  {historicalData.filter(item => item.patientId === patientId).length > 0 && (
+                    <DynamicRiskAssessment historicalData={historicalData.filter(item => item.patientId === patientId)} />
                   )}
 
                   {/* Treatment Options Button */}
@@ -879,6 +1135,9 @@ export default function LiverCancerPredictor() {
           </div>
         </div>
       </div>
+
+      {/* Patient ID Modal */}
+      {showPatientIdModal && <PatientIdModal />}
     </div>
   );
 }
