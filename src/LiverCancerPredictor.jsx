@@ -203,6 +203,10 @@ export default function LiverCancerPredictor() {
     e.preventDefault();
     setLoading(true);
 
+    // Reset modals when submitting new data
+    setShowTreatmentOptions(false);
+    setShowCompetingRisks(false);
+
     // Validate all inputs
     const newErrors = {};
     Object.keys(inputs).forEach(name => {
@@ -388,8 +392,12 @@ export default function LiverCancerPredictor() {
     </div>
   );
 
-  // Component for treatment options
-  const TreatmentOptions = ({ riskLevel }) => (
+  // Component for treatment options - using the latest risk level directly from result
+  const TreatmentOptions = () => {
+    // Ensure we're using the most current risk level
+    const currentRiskLevel = result?.riskLevel || "Moderate";
+
+    return (
     <div className="mt-6 p-4 bg-white rounded-lg shadow-lg">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold text-gray-900">Treatment Decision Support</h3>
@@ -408,7 +416,7 @@ export default function LiverCancerPredictor() {
 
         <div className="overflow-hidden bg-white shadow sm:rounded-md">
           <ul className="divide-y divide-gray-200">
-            {TREATMENT_OPTIONS[riskLevel].map((option, index) => (
+            {TREATMENT_OPTIONS[currentRiskLevel].map((option, index) => (
               <li key={index}>
                 <div className="px-4 py-4 sm:px-6">
                   <div className="flex items-center justify-between">
@@ -442,10 +450,15 @@ export default function LiverCancerPredictor() {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   // Component for competing risks in elderly patients
-  const CompetingRisks = ({ age }) => (
+  const CompetingRisks = () => {
+    // Ensure we're using the most current age
+    const currentAge = result?.patientAge || 70;
+
+    return (
     <div className="mt-6 p-4 bg-white rounded-lg shadow-lg">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold text-gray-900">Competing Risk Analysis</h3>
@@ -460,7 +473,7 @@ export default function LiverCancerPredictor() {
       </div>
 
       <div className="space-y-4">
-        <p className="text-sm text-gray-600">For patients aged {age} years, the following competing risks should be considered:</p>
+        <p className="text-sm text-gray-600">For patients aged {currentAge} years, the following competing risks should be considered:</p>
 
         <div className="overflow-hidden bg-white shadow sm:rounded-md">
           <ul className="divide-y divide-gray-200">
@@ -501,7 +514,8 @@ export default function LiverCancerPredictor() {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   // Component for dynamic risk assessment (trend analysis)
   const DynamicRiskAssessment = ({ historicalData }) => {
@@ -831,12 +845,12 @@ export default function LiverCancerPredictor() {
 
                   {/* Treatment Options Modal */}
                   {showTreatmentOptions && (
-                    <TreatmentOptions riskLevel={result.riskLevel} />
+                    <TreatmentOptions />
                   )}
 
                   {/* Competing Risks Modal */}
                   {showCompetingRisks && (
-                    <CompetingRisks age={result.patientAge} />
+                    <CompetingRisks />
                   )}
                 </div>
               )}
