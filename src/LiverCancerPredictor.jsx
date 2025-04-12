@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import predict from "./predict";
 
 export default function LiverCancerPredictor() {
   // 定义参数范围限制
@@ -26,28 +27,6 @@ export default function LiverCancerPredictor() {
 
   function calculateScore(kcnq1, linc01785) {
     return kcnq1 * 1.13 + linc01785 * 1.167 - 3.395;
-  }
-
-  function predict(lncRNA_score, age, afp, alb, ggt) {
-    // Convert AFP to binary (0/1) based on 10 ng/mL threshold
-    const afpBinary = afp > 10 ? 1 : 0;
-    
-    const intercept = -2.5792;
-    const coef = {
-      lncRNA: 0.8871,
-      age: 0.0627,
-      afp: 2.1980,
-      alb: -0.0373,
-      ggt: 0.0037
-    };
-    const logit =
-      intercept +
-      coef.lncRNA * lncRNA_score +
-      coef.age * age +
-      coef.afp * afpBinary + // Use binary AFP
-      coef.alb * alb +
-      coef.ggt * ggt;
-    return 1 / (1 + Math.exp(-logit));
   }
 
   const validateInput = (name, value) => {
@@ -110,8 +89,8 @@ export default function LiverCancerPredictor() {
 
     const [kcnq1, linc01785, age, afp, alb, ggt] = values;
     const score = calculateScore(kcnq1, linc01785);
-    const probability = predict(score, age, afp, alb, ggt);
-    
+    const probability = predict([score, age, afp, alb, ggt])[1];
+
     setResult({
       type: "success",
       probability: probability,
