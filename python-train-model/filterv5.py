@@ -146,14 +146,49 @@ for k in range(len(current_candidate_features), 4, -1):
     }).sort_values("Importance", ascending=False)
     rf_importance.to_csv(f"python-train-model/output/results/n5/rf_feature_importance_top_{k}.csv", index=False)
 
+    # 绘制特征重要性图表
+    plt.figure(figsize=(10, 6))
+    plt.barh(rf_importance["Feature"], rf_importance["Importance"])
+    plt.xlabel("Feature Importance")
+    plt.ylabel("Feature Name")
+    plt.title(f"Top-{k} Feature Importance Ranking")
+    plt.tight_layout()
+    plt.savefig(f"python-train-model/output/results/n5/feature_importance_plot_top_{k}.png")
+    plt.close()
+
     # 保存 SHAP 图
     explainer = shap.TreeExplainer(best_model)
     shap_values = explainer.shap_values(X_test_sub)
+
+    # 检查SHAP值的结构
+    # RandomForest分类器的TreeExplainer返回的shap_values可能有不同的结构
+    # 如果是列表，则第二个元素是正类的SHAP值
+    # 如果是三维数组，则第三维的第二个元素是正类的SHAP值
+
+    # 保存用于绘图的SHAP值
+    if isinstance(shap_values, list):
+        # 如果是列表形式 [负类值, 正类值]
+        plot_shap_values = shap_values[1]  # 正类的SHAP值
+    else:
+        # 如果是三维数组
+        plot_shap_values = shap_values[:, :, 1]  # 正类的SHAP值
+
+    # 保存 SHAP 图
     plt.figure()
-    shap.summary_plot(shap_values[:, :, 1], X_test_sub, plot_type="bar", show=False)
+    shap.summary_plot(plot_shap_values, X_test_sub, plot_type="bar", show=False)
     plt.tight_layout()
     plt.savefig(f"python-train-model/output/shap_plots/n5/shap_summary_top_{k}.png")
     plt.close()
+
+    # 计算并保存SHAP值的平均绝对值（即条形图中显示的值）
+    # 这些值与条形图中的长度对应
+    shap_summary = pd.DataFrame({
+        "Feature": current_features,
+        "Mean_Absolute_SHAP": np.abs(plot_shap_values).mean(axis=0)  # 计算每个特征的SHAP值平均绝对值
+    }).sort_values("Mean_Absolute_SHAP", ascending=False)  # 按平均绝对SHAP值降序排列
+
+    # 保存SHAP摘要统计值
+    shap_summary.to_csv(f"python-train-model/output/shap_plots/n5/shap_summary_top_{k}.csv", index=False)
 
     auc_record.append({
         "Num_Features": k,
