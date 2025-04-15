@@ -47,6 +47,12 @@ def load_and_preprocess_data(train_path, test_path, features, random_state=5):
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
+    means = scaler.mean_.tolist()
+    stds = scaler.scale_.tolist()
+    print(means)
+    print(stds)
+
+
     return X_train_scaled, X_test_scaled, y_train, y_test
 
 def get_models_and_params():
