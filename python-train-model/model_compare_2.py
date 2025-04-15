@@ -160,8 +160,16 @@ def main():
             y_pred = grid_search.predict(X_test_scaled)
             y_prob = grid_search.predict_proba(X_test_scaled)[:, 1] if hasattr(grid_search, 'predict_proba') else None
 
+            y_train_pred = grid_search.predict(X_train_scaled)
+            y_train_prob = grid_search.predict_proba(X_train_scaled)[:, 1] if hasattr(grid_search, 'predict_proba') else None
+            train_auc_score = roc_auc_score(y_train, y_train_prob) if y_train_prob is not None else np.nan
+            train_recall = recall_score(y_train, y_train_pred)
+
             auc_score = roc_auc_score(y_test, y_prob) if y_prob is not None else np.nan
             recall = recall_score(y_test, y_pred)
+
+
+
 
             # 保存模型
             model_path = os.path.join(output_dir, f"{name}.pkl")
@@ -210,7 +218,9 @@ def main():
                 'Model': name,
                 'Best Parameters': grid_search.best_params_,
                 'AUC Score': auc_score,
-                'Recall Score': recall
+                'Recall Score': recall,
+                'Train AUC Score': train_auc_score,
+                'Train Recall Score': train_recall
             })
         except Exception as e:
             print(f"{name} failed: {str(e)}")
@@ -219,7 +229,7 @@ def main():
     results_df = results_df.sort_values('AUC Score', ascending=False)
 
     print("\n=== Final Results ===")
-    print(results_df[['Model', 'AUC Score', 'Recall Score']])
+    print(results_df[['Model', 'AUC Score', 'Recall Score','Train AUC Score', 'Train Recall Score']])
 
     if not results_df.empty:
         best_model_name = results_df.iloc[0]['Model']
