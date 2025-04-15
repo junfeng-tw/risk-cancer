@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_auc_score, recall_score, make_scorer
+from sklearn.metrics import roc_auc_score, recall_score, make_scorer, precision_score, confusion_matrix
 from sklearn.ensemble import (
     RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier,
     AdaBoostClassifier, BaggingClassifier, HistGradientBoostingClassifier
@@ -165,8 +165,17 @@ def main():
                 y_train_prob = None
                 train_auc = np.nan
             train_recall = recall_score(y_train, y_train_pred)
+            # 灵敏度定义同 Recall
+            train_sensitivity = train_recall
+            train_precision = precision_score(y_train, y_train_pred)
+            cm_train = confusion_matrix(y_train, y_train_pred)
+            if cm_train.shape == (2, 2):
+                tn_train, fp_train, fn_train, tp_train = cm_train.ravel()
+                train_specificity = tn_train / (tn_train + fp_train) if (tn_train+fp_train) > 0 else np.nan
+            else:
+                train_specificity = np.nan
 
-            # 计算验证集（测试集）预测及指标
+            # 计算测试集预测及指标
             y_pred = grid_search.predict(X_test_scaled)
             if hasattr(grid_search.best_estimator_, 'predict_proba'):
                 y_prob = grid_search.predict_proba(X_test_scaled)[:, 1]
@@ -175,6 +184,14 @@ def main():
                 y_prob = None
                 test_auc = np.nan
             test_recall = recall_score(y_test, y_pred)
+            test_sensitivity = test_recall
+            test_precision = precision_score(y_test, y_pred)
+            cm_test = confusion_matrix(y_test, y_pred)
+            if cm_test.shape == (2, 2):
+                tn_test, fp_test, fn_test, tp_test = cm_test.ravel()
+                test_specificity = tn_test / (tn_test + fp_test) if (tn_test+fp_test) > 0 else np.nan
+            else:
+                test_specificity = np.nan
 
             # 保存模型
             model_path = os.path.join(output_dir, f"{name}.pkl")
@@ -223,9 +240,13 @@ def main():
                 'Model': name,
                 'Best Parameters': grid_search.best_params_,
                 'Train AUC Score': train_auc,
-                'Train Recall Score': train_recall,
+                'Train Sensitivity': train_sensitivity,
+                'Train Specificity': train_specificity,
+                'Train Precision': train_precision,
                 'Test AUC Score': test_auc,
-                'Test Recall Score': test_recall
+                'Test Sensitivity': test_sensitivity,
+                'Test Specificity': test_specificity,
+                'Test Precision': test_precision
             })
         except Exception as e:
             print(f"{name} failed: {str(e)}")
@@ -234,68 +255,80 @@ def main():
     results_df = results_df.sort_values('Test AUC Score', ascending=False)
 
     print("\n=== Final Results ===")
-    print(results_df[['Model', 'Train AUC Score', 'Train Recall Score', 'Test AUC Score', 'Test Recall Score']])
+    print(results_df[['Model', 'Train AUC Score', 'Train Sensitivity', 'Train Specificity', 'Train Precision',
+                      'Test AUC Score', 'Test Sensitivity', 'Test Specificity', 'Test Precision']])
 
     if not results_df.empty:
         best_model_name = results_df.iloc[0]['Model']
         print(f"\nBest Model: {best_model_name}")
         print(f"Best Test AUC Score: {results_df.iloc[0]['Test AUC Score']:.4f}")
-        print(f"Best Test Recall Score: {results_df.iloc[0]['Test Recall Score']:.4f}")
+        print(f"Best Test Sensitivity: {results_df.iloc[0]['Test Sensitivity']:.4f}")
+        print(f"Best Test Specificity: {results_df.iloc[0]['Test Specificity']:.4f}")
+        print(f"Best Test Precision: {results_df.iloc[0]['Test Precision']:.4f}")
 
-        # 提取模型名称和对应的指标数据
+    # 提取模型名称，用于绘图
     models_list = results_df['Model']
     indices = np.arange(len(models_list))
     bar_height = 0.4
 
-    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, len(models_list)*0.5 + 2))
+    # 新增 4 个子图：AUC, Sensitivity (灵敏度), Specificity (特异度), Precision (精准度)
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(12, len(models_list)*0.5 + 4))
+    fig.suptitle("Model Comparison", fontsize=16)
 
-    # AUC 子图
-    bars_train_auc = ax1.barh(indices - bar_height/2, results_df['Train AUC Score'], height=bar_height, label='Train AUC')
-    bars_test_auc  = ax1.barh(indices + bar_height/2, results_df['Test AUC Score'], height=bar_height, label='Test AUC')
+    plot_configs = [
+        {
+            'ax': axs[0, 0],
+            'train_col': 'Train AUC Score',
+            'test_col': 'Test AUC Score',
+            'title': 'AUC Comparison',
+            'xlabel': 'AUC Score'
+        },
+        {
+            'ax': axs[0, 1],
+            'train_col': 'Train Sensitivity',
+            'test_col': 'Test Sensitivity',
+            'title': 'Sensitivity Comparison',
+            'xlabel': 'Sensitivity Score'
+        },
+        {
+            'ax': axs[1, 0],
+            'train_col': 'Train Specificity',
+            'test_col': 'Test Specificity',
+            'title': 'Specificity Comparison',
+            'xlabel': 'Specificity Score'
+        },
+        {
+            'ax': axs[1, 1],
+            'train_col': 'Train Precision',
+            'test_col': 'Test Precision',
+            'title': 'Precision Comparison',
+            'xlabel': 'Precision Score'
+        }
+    ]
 
-    ax1.set_yticks(indices)
-    ax1.set_yticklabels(models_list)
-    ax1.set_xlabel('AUC Score')
-    ax1.set_title('AUC Comparison')
-    ax1.legend()
+    for config in plot_configs:
+        ax = config['ax']
+        train_metric = config['train_col']
+        test_metric = config['test_col']
+        ax.barh(indices - bar_height/2, results_df[train_metric], height=bar_height, label='Train')
+        ax.barh(indices + bar_height/2, results_df[test_metric], height=bar_height, label='Test')
+        ax.set_yticks(indices)
+        ax.set_yticklabels(models_list)
+        ax.set_xlabel(config['xlabel'])
+        ax.set_title(config['title'])
+        ax.legend()
 
-    # 为 AUC 条形图添加数值标签
-    for bar in bars_train_auc:
-        width = bar.get_width()
-        ax1.text(width - 0.05, bar.get_y() + bar.get_height()/2, f'{width:.3f}', va='center', fontsize=9, color="white")
-    for bar in bars_test_auc:
-        width = bar.get_width()
-        ax1.text(width - 0.05, bar.get_y() + bar.get_height()/2, f'{width:.3f}', va='center', fontsize=9, color="white")
+        # 在每个条形图上添加指标标签
+        for i, v in enumerate(results_df[train_metric]):
+            ax.text(v - 0.1, i - bar_height/2, f'{v:.3f}', va='center', fontsize=6, color="white")
+        for i, v in enumerate(results_df[test_metric]):
+            ax.text(v - 0.1, i + bar_height/2, f'{v:.3f}', va='center', fontsize=6, color="white")
+        # 设置 X 轴范围。若所有指标均大于 0.85 则下限设置为 0.85，否则从 0 开始
+        min_metric = min(results_df[train_metric].min(), results_df[test_metric].min())
+        lower_lim = 0.85 if min_metric > 0.85 else 0.0
+        ax.set_xlim(lower_lim, 1.0)
 
-    # 调整 AUC 图 x 轴：如果所有指标均在 0.85 以上，则从 0.85 显示，否则保留 0.5
-    min_auc = min(results_df['Train AUC Score'].min(), results_df['Test AUC Score'].min())
-    auc_lower_lim = 0.85 if min_auc > 0.85 else 0.5
-    ax1.set_xlim(auc_lower_lim, 1.0)
-
-    # Recall 子图
-    bars_train_recall = ax2.barh(indices - bar_height/2, results_df['Train Recall Score'], height=bar_height, label='Train Recall')
-    bars_test_recall  = ax2.barh(indices + bar_height/2, results_df['Test Recall Score'], height=bar_height, label='Test Recall')
-
-    ax2.set_yticks(indices)
-    ax2.set_yticklabels(models_list)
-    ax2.set_xlabel('Recall Score')
-    ax2.set_title('Recall Comparison')
-    ax2.legend()
-
-    # 为 Recall 条形图添加数值标签
-    for bar in bars_train_recall:
-        width = bar.get_width()
-        ax2.text(width - 0.05, bar.get_y() + bar.get_height()/2, f'{width:.3f}', va='center', fontsize=9,color="white")
-    for bar in bars_test_recall:
-        width = bar.get_width()
-        ax2.text(width - 0.05, bar.get_y() + bar.get_height()/2, f'{width:.3f}', va='center', fontsize=9,color="white")
-
-    # 调整 Recall 图 x 轴：如果所有指标均在 0.85 以上，则从 0.85 显示，否则保留 0.5
-    min_recall = min(results_df['Train Recall Score'].min(), results_df['Test Recall Score'].min())
-    recall_lower_lim = 0.85 if min_recall > 0.85 else 0.5
-    ax2.set_xlim(recall_lower_lim, 1.0)
-
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.show()
 
 
