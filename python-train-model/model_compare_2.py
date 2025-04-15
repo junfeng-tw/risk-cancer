@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_auc_score, recall_score, make_scorer, precision_score, confusion_matrix
+from sklearn.metrics import roc_auc_score, recall_score, accuracy_score, make_scorer, confusion_matrix
 from sklearn.ensemble import (
     RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier,
     AdaBoostClassifier, BaggingClassifier, HistGradientBoostingClassifier
@@ -167,7 +167,7 @@ def main():
             train_recall = recall_score(y_train, y_train_pred)
             # 灵敏度定义同 Recall
             train_sensitivity = train_recall
-            train_precision = precision_score(y_train, y_train_pred)
+            train_accuracy = accuracy_score(y_train, y_train_pred)
             cm_train = confusion_matrix(y_train, y_train_pred)
             if cm_train.shape == (2, 2):
                 tn_train, fp_train, fn_train, tp_train = cm_train.ravel()
@@ -185,7 +185,7 @@ def main():
                 test_auc = np.nan
             test_recall = recall_score(y_test, y_pred)
             test_sensitivity = test_recall
-            test_precision = precision_score(y_test, y_pred)
+            test_accuracy = accuracy_score(y_test, y_pred)
             cm_test = confusion_matrix(y_test, y_pred)
             if cm_test.shape == (2, 2):
                 tn_test, fp_test, fn_test, tp_test = cm_test.ravel()
@@ -242,11 +242,11 @@ def main():
                 'Train AUC Score': train_auc,
                 'Train Sensitivity': train_sensitivity,
                 'Train Specificity': train_specificity,
-                'Train Precision': train_precision,
+                'Train Accuracy': train_accuracy,
                 'Test AUC Score': test_auc,
                 'Test Sensitivity': test_sensitivity,
                 'Test Specificity': test_specificity,
-                'Test Precision': test_precision
+                'Test Accuracy': test_accuracy
             })
         except Exception as e:
             print(f"{name} failed: {str(e)}")
@@ -255,8 +255,9 @@ def main():
     results_df = results_df.sort_values('Test AUC Score', ascending=False)
 
     print("\n=== Final Results ===")
-    print(results_df[['Model', 'Train AUC Score', 'Train Sensitivity', 'Train Specificity', 'Train Precision',
-                      'Test AUC Score', 'Test Sensitivity', 'Test Specificity', 'Test Precision']])
+    print(results_df[['Model', 'Train AUC Score', 'Train Sensitivity', 'Train Specificity', 'Train Accuracy',
+                      'Test AUC Score', 'Test Sensitivity', 'Test Specificity', 'Test Accuracy']])
+    results_df.to_csv("python-train-model/output/results/model_comparison_results.csv", index=False)
 
     if not results_df.empty:
         best_model_name = results_df.iloc[0]['Model']
@@ -264,14 +265,14 @@ def main():
         print(f"Best Test AUC Score: {results_df.iloc[0]['Test AUC Score']:.4f}")
         print(f"Best Test Sensitivity: {results_df.iloc[0]['Test Sensitivity']:.4f}")
         print(f"Best Test Specificity: {results_df.iloc[0]['Test Specificity']:.4f}")
-        print(f"Best Test Precision: {results_df.iloc[0]['Test Precision']:.4f}")
+        print(f"Best Test Accuracy: {results_df.iloc[0]['Test Accuracy']:.4f}")
 
     # 提取模型名称，用于绘图
     models_list = results_df['Model']
     indices = np.arange(len(models_list))
     bar_height = 0.4
 
-    # 新增 4 个子图：AUC, Sensitivity (灵敏度), Specificity (特异度), Precision (精准度)
+    # 新增 4 个子图：AUC, Sensitivity (灵敏度), Specificity (特异度), Accuracy (精准度)
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(12, len(models_list)*0.5 + 4))
     fig.suptitle("Model Comparison", fontsize=16)
 
@@ -299,10 +300,10 @@ def main():
         },
         {
             'ax': axs[1, 1],
-            'train_col': 'Train Precision',
-            'test_col': 'Test Precision',
-            'title': 'Precision Comparison',
-            'xlabel': 'Precision Score'
+            'train_col': 'Train Accuracy',
+            'test_col': 'Test Accuracy',
+            'title': 'Accuracy Comparison',
+            'xlabel': 'Accuracy Score'
         }
     ]
 
