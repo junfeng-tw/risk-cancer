@@ -9,7 +9,7 @@ export default function Header() {
         <p className="text-blue-100 text-sm mt-1 font-medium">POWERED BY  <span className="text-yellow-400">AEGA-EV</span><sup>™</sup> BIOMARKER TECHNOLOGY</p>
       </div>
       <div className="bg-blue-900/40 px-3 py-1 rounded-md border border-blue-400/30">
-        <p className="text-xs text-blue-200 font-mono">ML.HistGBoost.v2.1</p>
+        <p className="text-xs text-blue-200 font-mono">ML.HistGBoost</p>
       </div>
     </div>
   );
