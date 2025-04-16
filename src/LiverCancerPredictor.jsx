@@ -65,8 +65,8 @@ export default function LiverCancerPredictor() {
         <Header />
 
         <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Biomarkers Section */}
               <FormSection
                 title={FIELD_GROUPS.biomarkers.title}
@@ -88,7 +88,9 @@ export default function LiverCancerPredictor() {
               />
             </div>
 
-            <LoadingButton loading={isSubmitting} />
+            <div className="flex justify-center mt-8">
+              <LoadingButton loading={isSubmitting} />
+            </div>
           </form>
 
           <ResultDisplay result={result} />

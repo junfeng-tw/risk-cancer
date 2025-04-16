@@ -7,9 +7,11 @@ export default function LoadingButton({ loading, onClick, type = "submit", class
       type={type}
       onClick={onClick}
       disabled={loading}
-      className={`w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-        loading ? 'opacity-75 cursor-not-allowed' : ''
-      } ${className}`}
+      className={`px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg
+        hover:from-blue-700 hover:to-blue-800 transition-all duration-200 ease-in-out
+        focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2
+        transform hover:scale-105 active:scale-95
+        ${loading ? 'opacity-75 cursor-not-allowed' : ''} ${className}`}
     >
       {loading ? (
         <span className="flex items-center justify-center">
