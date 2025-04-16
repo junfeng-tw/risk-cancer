@@ -83,6 +83,7 @@ export default function LiverCancerPredictor() {
               {/* Biomarkers Section */}
               <FormSection
                 title={FIELD_GROUPS.biomarkers.title}
+                subtitle={FIELD_GROUPS.biomarkers.subtitle}
                 fields={FIELD_GROUPS.biomarkers.fields}
                 inputs={inputs}
                 errors={errors}
@@ -93,6 +94,7 @@ export default function LiverCancerPredictor() {
               {/* Clinical Parameters Section */}
               <FormSection
                 title={FIELD_GROUPS.clinical.title}
+                subtitle={FIELD_GROUPS.clinical.subtitle}
                 fields={FIELD_GROUPS.clinical.fields}
                 inputs={inputs}
                 errors={errors}

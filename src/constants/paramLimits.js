@@ -28,11 +28,13 @@ export const INITIAL_FORM_VALUES = {
  */
 export const FIELD_GROUPS = {
   biomarkers: {
-    title: "EV-derived lncRNA Biomarkers",
+    title: "lncRNA Biomarkers",
+    subtitle: "EV-derived",
     fields: ["kcnq1", "linc01785"]
   },
   clinical: {
-    title: "Clinical Parameters",
+    title: "Liver Function Panel",
+    subtitle: "Serum markers & patient data",
     fields: ["age", "afp", "alb", "ggt"]
   }
 };
