@@ -9,12 +9,12 @@ import { PARAM_LIMITS } from '../constants/paramLimits';
 export const validateInput = (name, value) => {
   const limits = PARAM_LIMITS[name];
   if (value === "") return "This field is required";
-  
+
   const numValue = parseFloat(value);
   if (isNaN(numValue)) return "Must be a valid number";
   if (numValue < limits.min) return `Minimum value is ${limits.min}`;
   if (numValue > limits.max) return `Maximum value is ${limits.max}`;
-  
+
   return null;
 };
 
@@ -25,23 +25,13 @@ export const validateInput = (name, value) => {
  */
 export const validateAllInputs = (inputs) => {
   const errors = {};
-  
+
   Object.entries(inputs).forEach(([name, value]) => {
     const error = validateInput(name, value);
     if (error) errors[name] = error;
   });
-  
-  return errors;
-};
 
-/**
- * Gets the hint text for an input field
- * @param {string} name - Field name
- * @returns {string} - Hint text
- */
-export const getInputHint = (name) => {
-  const limits = PARAM_LIMITS[name];
-  return `Range: ${limits.min} - ${limits.max}`;
+  return errors;
 };
 
 /**

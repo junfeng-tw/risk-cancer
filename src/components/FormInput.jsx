@@ -1,20 +1,19 @@
 import { PARAM_LIMITS, FIELD_METADATA } from '../constants/paramLimits';
-import { getInputHint } from '../utils/formUtils';
 
 /**
  * Reusable form input component for numeric inputs with validation
  */
-export default function FormInput({ 
-  name, 
-  value, 
-  error, 
-  onChange, 
+export default function FormInput({
+  name,
+  value,
+  error,
+  onChange,
   onBlur,
   customHint
 }) {
   const metadata = FIELD_METADATA[name];
   const limits = PARAM_LIMITS[name];
-  
+
   return (
     <label className="block">
       <span className="text-gray-700 font-medium">{metadata.label}</span>
@@ -36,7 +35,7 @@ export default function FormInput({
         <p className="mt-1 text-sm text-red-600">{error}</p>
       ) : (
         <p className="mt-1 text-sm text-gray-500">
-          {getInputHint(name)} {customHint || metadata.hint || ''}
+           {customHint || metadata.hint || ''}
         </p>
       )}
     </label>
