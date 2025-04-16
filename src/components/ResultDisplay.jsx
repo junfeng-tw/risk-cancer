@@ -3,7 +3,7 @@
  */
 export default function ResultDisplay({ result }) {
   if (!result) return null;
-  
+
   if (result.type === 'error') {
     return (
       <div className="mt-6 p-4 rounded-lg bg-red-50">
@@ -11,31 +11,21 @@ export default function ResultDisplay({ result }) {
       </div>
     );
   }
-  
+
   return (
     <div className="mt-6 p-4 rounded-lg bg-blue-50">
       <div className="space-y-2">
         <h3 className="text-xl font-semibold text-gray-900">Analysis Results</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <ResultCard 
-            label="Risk Probability" 
-            value={`${(result.probability * 100).toFixed(1)}%`} 
-            color="text-blue-600" 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ResultCard
+            label="Risk Probability"
+            value={`${(result.probability * 100).toFixed(1)}%`}
+            color="text-blue-600"
           />
-          <ResultCard 
-            label="lncRNA Score" 
-            value={result.score.toFixed(3)} 
-            color="text-blue-600" 
-          />
-          <ResultCard 
-            label="Risk Level" 
-            value={result.riskLevel} 
-            color={getRiskLevelColor(result.riskLevel)} 
-          />
-          <ResultCard 
-            label="AFP Status" 
-            value={result.afpStatus} 
-            color={result.afpStatus === 'Normal' ? 'text-green-600' : 'text-red-600'} 
+          <ResultCard
+            label="Risk Level"
+            value={result.riskLevel}
+            color={getRiskLevelColor(result.riskLevel)}
           />
         </div>
       </div>
