@@ -5,22 +5,6 @@ const SCALER_MEANS = [2.5088337412890174, 55.01156069364162, 4224.481387283237, 
 const SCALER_SCALES = [5.591347357350493, 12.830143534402424, 15972.701775588, 6.321121358433146, 126.6698855890084];
 
 /**
- * Pre-load the model and cache the session at module level
- * to avoid reloading the model for each prediction, improving efficiency.
- */
-const sessionPromise = ort.InferenceSession.create("./HistGradientBoosting.onnx")
-    .then((session) => {
-        console.log("Model loaded successfully");
-        console.log("Model input names:", session.inputNames);
-        console.log("Model output names:", session.outputNames);
-        return session;
-    })
-    .catch((error) => {
-        console.error("Failed to load model:", error);
-        throw error;
-    });
-
-/**
  * Standardize input data using pre-defined means and scales
  * @param {Array<number>} rawInputs - Raw input array
  * @returns {Array<number>} - Standardized data
@@ -51,8 +35,13 @@ async function predict(input) {
         const tensor = new ort.Tensor("float32", Float32Array.from(standardizedInput), [1, standardizedInput.length]);
         console.log("Tensor created:", tensor);
 
-        // Wait for model to load
-        const session = await sessionPromise;
+        // Use the globally available session from ModelLoadingContext
+        const session = window.onnxSession;
+
+        // If session is not available, throw an error
+        if (!session) {
+            throw new Error("Model not loaded yet. Please wait for the model to load completely.");
+        }
 
         // Set prediction input
         const feeds = { float_input: tensor };

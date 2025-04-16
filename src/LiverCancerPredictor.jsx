@@ -3,6 +3,7 @@ import { useState } from "react";
 import { INITIAL_FORM_VALUES, FIELD_GROUPS } from "./constants/paramLimits";
 import useForm from "./hooks/useForm";
 import predictionService from "./services/predictionService";
+import { useModelLoading } from "./contexts/ModelLoadingContext";
 
 // Components
 import Header from "./components/Header";
@@ -16,6 +17,7 @@ import ResultDisplay from "./components/ResultDisplay";
  */
 export default function LiverCancerPredictor() {
   const [result, setResult] = useState(null);
+  const { isLoaded, isLoading } = useModelLoading();
   const {
     inputs,
     errors,
@@ -104,8 +106,17 @@ export default function LiverCancerPredictor() {
             </div>
 
             <div className="flex justify-center mt-8">
-              <LoadingButton loading={isSubmitting} />
+              <LoadingButton
+                loading={isSubmitting}
+                onClick={undefined} // Only needed for type="button"
+                disabled={!isLoaded}
+              />
             </div>
+            {!isLoaded && !isLoading && (
+              <div className="text-center mt-4">
+                <p className="text-red-500 text-sm">Error loading prediction model. Please refresh the page.</p>
+              </div>
+            )}
           </form>
 
           {/* 加载中显示占位符，非加载状态显示结果 */}
