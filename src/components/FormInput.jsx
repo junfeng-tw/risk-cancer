@@ -16,7 +16,9 @@ export default function FormInput({
 
   return (
     <label className="block">
-      <span className="text-gray-700 font-medium">{metadata.label}</span>
+      <div className="flex items-center mb-1.5">
+        <span className="text-gray-800 font-semibold text-sm tracking-wide">{metadata.label}</span>
+      </div>
       <div className="relative mt-2">
         <input
           type="number"
