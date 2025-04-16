@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import predict from "./predict";
+
 
 export default function LiverCancerPredictor() {
   // 定义参数范围限制
@@ -89,7 +89,7 @@ export default function LiverCancerPredictor() {
 
     const [kcnq1, linc01785, age, afp, alb, ggt] = values;
     const score = calculateScore(kcnq1, linc01785);
-    const probability = predict([score, age, afp, alb, ggt])[1];
+    const probability = await window.onnxPredict([score, age, afp, alb, ggt]);
 
     setResult({
       type: "success",
