@@ -13,7 +13,7 @@ export default function ResultDisplay({ result }) {
   }
 
   return (
-    <div className="mt-8 p-6 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-md">
+    <div className="mt-8 p-6 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 shadow-md">
       <div className="space-y-4">
         <div className="flex items-center mb-2 pb-2 border-b border-blue-200">
           <div className="mr-2 p-1.5 rounded-md bg-blue-500">
@@ -46,7 +46,7 @@ export default function ResultDisplay({ result }) {
  */
 function ResultCard({ label, value, color }) {
   return (
-    <div className="p-4 bg-white rounded-lg shadow">
+    <div className="p-5 bg-white rounded-lg shadow-md border border-indigo-100 hover:shadow-lg transition-all duration-300 hover:border-indigo-200">
       <p className="text-sm text-gray-500">{label}</p>
       <p className={`text-2xl font-bold ${color}`}>
         {value}

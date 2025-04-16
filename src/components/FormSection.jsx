@@ -5,7 +5,7 @@ import FormInput from './FormInput';
  */
 export default function FormSection({ title, subtitle, fields, inputs, errors, handleChange, handleBlur }) {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow duration-300">
+    <div className="bg-white rounded-lg shadow-sm p-6 border border-blue-100 hover:shadow-md transition-all duration-300 hover:border-blue-200">
       <div className="mb-5">
         {/* 标题容器 */}
         <div className="flex flex-col mb-3">
