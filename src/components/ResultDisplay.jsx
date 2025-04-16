@@ -13,10 +13,18 @@ export default function ResultDisplay({ result }) {
   }
 
   return (
-    <div className="mt-6 p-4 rounded-lg bg-blue-50">
-      <div className="space-y-2">
-        <h3 className="text-xl font-semibold text-gray-900">Analysis Results</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="mt-8 p-6 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-md">
+      <div className="space-y-4">
+        <div className="flex items-center mb-2 pb-2 border-b border-blue-200">
+          <div className="mr-2 p-1.5 rounded-md bg-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+              <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900">Analysis Results</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ResultCard
             label="Risk Probability"
             value={`${(result.probability * 100).toFixed(1)}%`}
