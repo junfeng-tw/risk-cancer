@@ -1,5 +1,10 @@
 import * as ort from "onnxruntime-web";
 
+// Configure ONNX Runtime to use CDN-hosted WASM files
+ort.env.wasm.wasmPaths = {
+  'ort-wasm-simd-threaded.jsep.wasm': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort-wasm-simd-threaded.jsep.wasm'
+};
+
 // Scaler means and standard deviations for input normalization
 const SCALER_MEANS = [2.5088337412890174, 55.01156069364162, 4224.481387283237, 37.57687861271676, 108.29479768786128];
 const SCALER_SCALES = [5.591347357350493, 12.830143534402424, 15972.701775588, 6.321121358433146, 126.6698855890084];
@@ -8,7 +13,10 @@ const SCALER_SCALES = [5.591347357350493, 12.830143534402424, 15972.701775588, 6
  * Pre-load the model and cache the session at module level
  * to avoid reloading the model for each prediction, improving efficiency.
  */
-const sessionPromise = ort.InferenceSession.create("./HistGradientBoosting.onnx")
+const sessionPromise = ort.InferenceSession.create("./HistGradientBoosting.onnx", {
+  executionProviders: ['wasm'],
+  graphOptimizationLevel: 'all'
+})
     .then((session) => {
         console.log("Model loaded successfully");
         console.log("Model input names:", session.inputNames);
