@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect, useRef } from 'react';
 import * as ort from 'onnxruntime-web';
+import { fetchWithProgress } from '../utils/modelLoader';
 
 // Create context
 const ModelLoadingContext = createContext({
@@ -7,6 +8,7 @@ const ModelLoadingContext = createContext({
   progress: 0,
   isLoaded: false,
   error: null,
+  stage: 'initializing', // 'downloading', 'processing', 'initializing'
 });
 
 // Custom hook to use the context
@@ -19,8 +21,9 @@ export function ModelLoadingProvider({ children }) {
     progress: 0,
     isLoaded: false,
     error: null,
+    stage: 'initializing',
   });
-
+  
   // Refs for tracking progress simulation
   const progressIntervalRef = useRef(null);
   const startTimeRef = useRef(Date.now());
@@ -30,14 +33,13 @@ export function ModelLoadingProvider({ children }) {
   const simulateProgress = () => {
     const currentTime = Date.now();
     const elapsedSeconds = (currentTime - startTimeRef.current) / 1000;
-
+    
     // If we've received real progress updates, don't override with simulation
     if (hasRealProgressRef.current) return;
-
+    
     // Simulate an S-curve for progress: slow start, faster middle, slow end
-    // This is a simple sigmoid function scaled to our needs
     let simulatedProgress;
-
+    
     // First 2 seconds: 0-20%
     if (elapsedSeconds < 2) {
       simulatedProgress = (elapsedSeconds / 2) * 20;
@@ -54,7 +56,7 @@ export function ModelLoadingProvider({ children }) {
     else {
       simulatedProgress = 95;
     }
-
+    
     // Update state with simulated progress
     setState(prev => ({
       ...prev,
@@ -63,11 +65,11 @@ export function ModelLoadingProvider({ children }) {
   };
 
   useEffect(() => {
-    // Start progress simulation
+    // Start progress simulation as a fallback
     startTimeRef.current = Date.now();
     progressIntervalRef.current = setInterval(simulateProgress, 100);
 
-    // Configure ONNX Runtime to report progress
+    // Configure ONNX Runtime
     const options = {
       executionProviders: ['wasm'],
       logSeverityLevel: 0,
@@ -77,63 +79,89 @@ export function ModelLoadingProvider({ children }) {
     ort.env.wasm.simd = true;
     ort.env.wasm.proxy = false;
 
+    // First, update state to show we're starting to download
+    setState(prev => ({
+      ...prev,
+      stage: 'downloading',
+      progress: 0,
+    }));
 
-
-    // Create a session with progress tracking
-    const session = ort.InferenceSession.create(
-      "./HistGradientBoosting.onnx",
-      options,
-      (progress) => {
-        // If we get a real progress update, mark it
-        if (progress > 0) {
-          hasRealProgressRef.current = true;
-
-          setState(prev => ({
-            ...prev,
-            progress: Math.min(95, progress), // Cap real progress at 95% until fully loaded
-            isLoading: true,
-          }));
+    // Step 1: Download the model file with progress tracking
+    const modelUrl = './HistGradientBoosting.onnx';
+    
+    // Try to fetch the model with progress tracking
+    fetchWithProgress(modelUrl, (downloadProgress) => {
+      hasRealProgressRef.current = true; // We have real progress now
+      
+      // Update state with download progress (scale to 0-80%)
+      setState(prev => ({
+        ...prev,
+        progress: Math.min(80, Math.round(downloadProgress * 0.8)),
+        stage: 'downloading',
+      }));
+    })
+    .then(modelData => {
+      // Update state to show we're processing the model
+      setState(prev => ({
+        ...prev,
+        progress: 85,
+        stage: 'processing',
+      }));
+      
+      // Step 2: Create the ONNX session with the downloaded model data
+      return ort.InferenceSession.create(
+        modelData,
+        options,
+        (progress) => {
+          // If we get progress updates from ONNX, use them
+          if (progress > 0) {
+            // Scale progress from 85-95%
+            const scaledProgress = 85 + Math.min(10, progress * 0.1);
+            setState(prev => ({
+              ...prev,
+              progress: Math.round(scaledProgress),
+              stage: 'initializing',
+            }));
+          }
         }
+      );
+    })
+    .then(session => {
+      console.log("Model loaded successfully");
+      console.log("Model input names:", session.inputNames);
+      console.log("Model output names:", session.outputNames);
+      
+      // Clear the simulation interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
       }
-    );
-
-    // Handle session creation result
-    session
-      .then((session) => {
-        console.log("Model loaded successfully");
-        console.log("Model input names:", session.inputNames);
-        console.log("Model output names:", session.outputNames);
-
-        // Clear the simulation interval
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-
-        // Store the session in window for global access
-        window.onnxSession = session;
-
-        // Set final state
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          isLoaded: true,
-          progress: 100,
-        }));
-      })
-      .catch((error) => {
-        console.error("Failed to load model:", error);
-
-        // Clear the simulation interval
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: error.message || "Failed to load model",
-        }));
-      });
+      
+      // Store the session in window for global access
+      window.onnxSession = session;
+      
+      // Set final state
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        isLoaded: true,
+        progress: 100,
+        stage: 'ready',
+      }));
+    })
+    .catch(error => {
+      console.error("Failed to load model:", error);
+      
+      // Clear the simulation interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.message || "Failed to load model",
+      }));
+    });
 
     // Cleanup function
     return () => {

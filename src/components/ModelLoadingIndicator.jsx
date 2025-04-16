@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
  * Component to display model loading progress
  */
 export default function ModelLoadingIndicator() {
-  const { isLoading, progress, isLoaded, error } = useModelLoading();
+  const { isLoading, progress, isLoaded, error, stage } = useModelLoading();
   const [showTip, setShowTip] = useState(false);
 
   // Show a tip after 8 seconds if still loading
@@ -22,12 +22,20 @@ export default function ModelLoadingIndicator() {
     return null;
   }
 
-  // Get appropriate loading message based on progress
+  // Get appropriate loading message based on stage and progress
   const getLoadingMessage = () => {
-    if (progress < 30) return 'Downloading WASM model...';
-    if (progress < 70) return 'Processing model files...';
-    if (progress < 95) return 'Initializing prediction engine...';
-    return 'Almost ready...';
+    switch (stage) {
+      case 'downloading':
+        return `Downloading model file: ${progress}%`;
+      case 'processing':
+        return 'Processing model data...';
+      case 'initializing':
+        return 'Initializing prediction engine...';
+      case 'finalizing':
+        return 'Almost ready...';
+      default:
+        return 'Loading model...';
+    }
   };
 
   return (
