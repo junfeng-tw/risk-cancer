@@ -54,12 +54,3 @@ export const getRiskLevel = (probability) => {
   if (probability < 0.7) return "Moderate";
   return "High";
 };
-
-/**
- * Determines AFP status
- * @param {number} afp - AFP value
- * @returns {string} - AFP status (Normal, Elevated)
- */
-export const getAfpStatus = (afp) => {
-  return afp > 10 ? "Elevated" : "Normal";
-};

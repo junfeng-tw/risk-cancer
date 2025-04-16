@@ -45,12 +45,7 @@ export default function LiverCancerPredictor() {
     }
 
     try {
-      // Use the prediction service to get results
-      // If window.onnxPredict is available, use the real model
-      // Otherwise use the simulation
-      const predictionResult = window.onnxPredict
-        ? await predictionService.predictRisk(inputs)
-        : await predictionService.simulatePrediction(inputs);
+      const predictionResult = await predictionService.predictRisk(inputs);
 
       setResult(predictionResult);
     } catch (error) {
