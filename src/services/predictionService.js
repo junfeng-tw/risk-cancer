@@ -20,7 +20,7 @@ export default {
       const score = calculateScore(kcnq1, linc01785);
       
       // Get prediction from model
-      const probability = await window.onnxPredict([score, age, afp, alb, ggt]);
+      const probability = await predict([score, age, afp, alb, ggt]);
       
       // Determine risk level and AFP status
       const riskLevel = getRiskLevel(probability);

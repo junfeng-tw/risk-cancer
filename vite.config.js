@@ -5,4 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: '/risk-cancer/',
   plugins: [react()],
+
+  // ONNX配置：包含.onnx文件作为资源并排除onnxruntime-web依赖
+  assetsInclude: ["**/*.onnx"],
+  optimizeDeps: {
+    exclude: ["onnxruntime-web"],
+  },
 })
