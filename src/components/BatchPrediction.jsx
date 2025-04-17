@@ -211,7 +211,7 @@ export default function BatchPrediction() {
                     Risk Level
                   </th>
                   <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Prediction
+                    Imputed Fields
                   </th>
                 </tr>
               </thead>
@@ -236,7 +236,11 @@ export default function BatchPrediction() {
                       </span>
                     </td>
                     <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
-                      {result.prediction === 1 ? 'High Risk' : 'Low/Moderate Risk'}
+                      {result.imputedFields ? (
+                        <span className="text-amber-600">{result.imputedFields}</span>
+                      ) : (
+                        <span className="text-green-600">None</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -244,9 +248,36 @@ export default function BatchPrediction() {
             </table>
           </div>
 
-          <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-500">
-            Total samples processed: {results.results.length}
-          </p>
+          <div className="mt-3 sm:mt-4 space-y-2">
+            <p className="text-xs sm:text-sm text-gray-500">
+              Total samples processed: {results.results.length}
+            </p>
+            <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+              <p className="text-xs sm:text-sm text-blue-800 font-medium">空值处理说明：</p>
+              <p className="text-xs text-blue-700 mt-1">
+                系统会自动处理CSV中的空值或无效值，使用偏向正常范围的保守值进行填充，以减少对结果的偏差。空值字段会在"Imputed Fields"列中标记。
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="font-medium text-blue-800">保守默认值：</p>
+                  <ul className="text-blue-700 list-disc pl-4 space-y-0.5">
+                    <li>KCNQ1-AS1: 1.5</li>
+                    <li>LINC01785: 2.0</li>
+                    <li>Score: 1.0</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-blue-800">正常范围默认值：</p>
+                  <ul className="text-blue-700 list-disc pl-4 space-y-0.5">
+                    <li>年龄: 50岁</li>
+                    <li>AFP: 10 ng/mL</li>
+                    <li>白蛋白: 42 g/L</li>
+                    <li>γ-GT: 30 U/L</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

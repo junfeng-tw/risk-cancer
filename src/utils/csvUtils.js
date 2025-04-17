@@ -9,13 +9,13 @@
  */
 export const objectsToCSV = (data) => {
   if (!data || !data.length) return '';
-  
+
   const headers = Object.keys(data[0]);
   const csvRows = [];
-  
+
   // Add header row
   csvRows.push(headers.join(','));
-  
+
   // Add data rows
   for (const row of data) {
     const values = headers.map(header => {
@@ -26,7 +26,7 @@ export const objectsToCSV = (data) => {
     });
     csvRows.push(values.join(','));
   }
-  
+
   return csvRows.join('\n');
 };
 
@@ -39,11 +39,11 @@ export const downloadCSV = (csvContent, fileName) => {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  
+
   link.setAttribute('href', url);
   link.setAttribute('download', fileName);
   link.style.visibility = 'hidden';
-  
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -56,8 +56,13 @@ export const downloadCSV = (csvContent, fileName) => {
 export const generateFormInputTemplate = () => {
   const headers = ['sampleId', 'kcnq1', 'linc01785', 'age', 'afp', 'alb', 'ggt'];
   const exampleRow = ['sample1', '2.5', '3.1', '55', '4224', '37.6', '108.3'];
-  
-  return headers.join(',') + '\n' + exampleRow.join(',');
+  const emptyRow = ['sample2', '', '', '60', '', '40', ''];
+  const comment = ['# 注意：空值将被自动填充为合理的默认值。这些字段会在结果中被标记。'];
+
+  return comment.join(',') + '\n' +
+         headers.join(',') + '\n' +
+         exampleRow.join(',') + '\n' +
+         emptyRow.join(',');
 };
 
 /**
@@ -67,8 +72,13 @@ export const generateFormInputTemplate = () => {
 export const generateScoreInputTemplate = () => {
   const headers = ['sampleId', 'score', 'age', 'afp', 'alb', 'ggt'];
   const exampleRow = ['sample1', '2.5', '55', '4224', '37.6', '108.3'];
-  
-  return headers.join(',') + '\n' + exampleRow.join(',');
+  const emptyRow = ['sample2', '', '60', '', '40', ''];
+  const comment = ['# 注意：空值将被自动填充为合理的默认值。这些字段会在结果中被标记。'];
+
+  return comment.join(',') + '\n' +
+         headers.join(',') + '\n' +
+         exampleRow.join(',') + '\n' +
+         emptyRow.join(',');
 };
 
 /**
@@ -80,20 +90,20 @@ export const parseCSV = (csvContent) => {
   const lines = csvContent.split('\n');
   const headers = lines[0].split(',').map(header => header.trim());
   const result = [];
-  
+
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
-    
+
     const values = parseCSVLine(lines[i]);
     const obj = {};
-    
+
     headers.forEach((header, index) => {
       obj[header] = values[index];
     });
-    
+
     result.push(obj);
   }
-  
+
   return result;
 };
 
@@ -106,10 +116,10 @@ function parseCSVLine(line) {
   const result = [];
   let current = '';
   let inQuotes = false;
-  
+
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    
+
     if (char === '"') {
       // Handle escaped quotes (two double quotes in a row)
       if (i + 1 < line.length && line[i + 1] === '"') {
@@ -126,9 +136,9 @@ function parseCSVLine(line) {
       current += char;
     }
   }
-  
+
   // Add the last field
   result.push(current.trim());
-  
+
   return result;
 }

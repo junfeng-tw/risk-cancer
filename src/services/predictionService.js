@@ -48,17 +48,58 @@ export default {
   async predictBatchFromForm(batchInputs) {
     try {
       const results = [];
+      // 使用更保守的默认值，偏向正常范围
+      const NORMAL_VALUES = {
+        kcnq1: 1.5,      // 偏向正常范围的保守值
+        linc01785: 2.0, // 偏向正常范围的保守值
+        age: 50,        // 中年人群的平均年龄
+        afp: 10,        // 正常AFP范围（<20 ng/mL）
+        alb: 42,        // 正常白蛋白范围（35-55 g/L）
+        ggt: 30         // 正常γ-GT范围（10-60 U/L）
+      };
 
       for (const input of batchInputs) {
         const { sampleId, kcnq1, linc01785, age, afp, alb, ggt } = input;
+        const imputedFields = [];
 
-        // Convert string values to numbers
-        const numKcnq1 = parseFloat(kcnq1);
-        const numLinc01785 = parseFloat(linc01785);
-        const numAge = parseFloat(age);
-        const numAfp = parseFloat(afp);
-        const numAlb = parseFloat(alb);
-        const numGgt = parseFloat(ggt);
+        // Convert string values to numbers with empty value handling
+        let numKcnq1 = parseFloat(kcnq1);
+        let numLinc01785 = parseFloat(linc01785);
+        let numAge = parseFloat(age);
+        let numAfp = parseFloat(afp);
+        let numAlb = parseFloat(alb);
+        let numGgt = parseFloat(ggt);
+
+        // Handle empty or invalid values with conservative imputation
+        if (isNaN(numKcnq1)) {
+          numKcnq1 = NORMAL_VALUES.kcnq1; // 使用保守值
+          imputedFields.push('kcnq1');
+        }
+
+        if (isNaN(numLinc01785)) {
+          numLinc01785 = NORMAL_VALUES.linc01785; // 使用保守值
+          imputedFields.push('linc01785');
+        }
+
+        if (isNaN(numAge)) {
+          numAge = NORMAL_VALUES.age; // 使用保守值
+          imputedFields.push('age');
+        }
+
+        if (isNaN(numAfp)) {
+          numAfp = NORMAL_VALUES.afp; // 使用保守值
+          imputedFields.push('afp');
+        }
+
+        if (isNaN(numAlb)) {
+          numAlb = NORMAL_VALUES.alb; // 使用保守值
+          imputedFields.push('alb');
+        }
+
+        if (isNaN(numGgt)) {
+          numGgt = NORMAL_VALUES.ggt; // 使用保守值
+          imputedFields.push('ggt');
+        }
 
         // Calculate lncRNA score
         const score = calculateScore(numKcnq1, numLinc01785);
@@ -74,7 +115,7 @@ export default {
           score,
           probability,
           riskLevel,
-          prediction: riskLevel === 'High' ? 1 : 0
+          imputedFields: imputedFields.length > 0 ? imputedFields.join(', ') : ''
         });
       }
 
@@ -103,16 +144,51 @@ export default {
   async predictBatchFromScore(batchInputs) {
     try {
       const results = [];
+      // 使用更保守的默认值，偏向正常范围
+      const NORMAL_VALUES = {
+        score: 1.0,      // 偏向正常范围的保守值
+        age: 50,        // 中年人群的平均年龄
+        afp: 10,        // 正常AFP范围（<20 ng/mL）
+        alb: 42,        // 正常白蛋白范围（35-55 g/L）
+        ggt: 30         // 正常γ-GT范围（10-60 U/L）
+      };
 
       for (const input of batchInputs) {
         const { sampleId, score, age, afp, alb, ggt } = input;
+        const imputedFields = [];
 
-        // Convert string values to numbers
-        const numScore = parseFloat(score);
-        const numAge = parseFloat(age);
-        const numAfp = parseFloat(afp);
-        const numAlb = parseFloat(alb);
-        const numGgt = parseFloat(ggt);
+        // Convert string values to numbers with empty value handling
+        let numScore = parseFloat(score);
+        let numAge = parseFloat(age);
+        let numAfp = parseFloat(afp);
+        let numAlb = parseFloat(alb);
+        let numGgt = parseFloat(ggt);
+
+        // Handle empty or invalid values with conservative imputation
+        if (isNaN(numScore)) {
+          numScore = NORMAL_VALUES.score; // 使用保守值
+          imputedFields.push('score');
+        }
+
+        if (isNaN(numAge)) {
+          numAge = NORMAL_VALUES.age; // 使用保守值
+          imputedFields.push('age');
+        }
+
+        if (isNaN(numAfp)) {
+          numAfp = NORMAL_VALUES.afp; // 使用保守值
+          imputedFields.push('afp');
+        }
+
+        if (isNaN(numAlb)) {
+          numAlb = NORMAL_VALUES.alb; // 使用保守值
+          imputedFields.push('alb');
+        }
+
+        if (isNaN(numGgt)) {
+          numGgt = NORMAL_VALUES.ggt; // 使用保守值
+          imputedFields.push('ggt');
+        }
 
         // Get prediction from model
         const probability = await predict([numScore, numAge, numAfp, numAlb, numGgt]);
@@ -125,7 +201,7 @@ export default {
           score: numScore,
           probability,
           riskLevel,
-          prediction: riskLevel === 'High' ? 1 : 0
+          imputedFields: imputedFields.length > 0 ? imputedFields.join(', ') : ''
         });
       }
 
