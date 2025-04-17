@@ -195,22 +195,61 @@ export default function BatchPrediction() {
           </div>
 
           <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="flex justify-between mb-2">
+              <div className="text-xs sm:text-sm font-medium text-gray-700">Input Data</div>
+              <div className="text-xs sm:text-sm font-medium text-blue-700">Prediction Results</div>
+            </div>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  {/* Original Input Fields */}
                   <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Sample ID
                   </th>
+                  {mode === 'form' && (
+                    <>
+                      <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        KCNQ1-AS1
+                      </th>
+                      <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        LINC01785
+                      </th>
+                    </>
+                  )}
+                  {mode === 'score' && (
+                    <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Score
+                    </th>
+                  )}
                   <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Score
+                    Age
                   </th>
                   <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    AFP
+                  </th>
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ALB
+                  </th>
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    γ-GT
+                  </th>
+
+                  {/* Divider */}
+                  <th scope="col" className="px-1 py-2 sm:py-3 bg-gray-200"></th>
+
+                  {/* Prediction Results */}
+                  {mode === 'form' && (
+                    <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
+                      Score
+                    </th>
+                  )}
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
                     Probability
                   </th>
-                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
                     Risk Level
                   </th>
-                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
                     Imputed Fields
                   </th>
                 </tr>
@@ -218,16 +257,51 @@ export default function BatchPrediction() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {results.results.map((result, index) => (
                   <tr key={index}>
+                    {/* Original Input Fields */}
                     <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
                       {result.sampleId}
                     </td>
+                    {mode === 'form' && (
+                      <>
+                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                          {result.kcnq1.toFixed(2)}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                          {result.linc01785.toFixed(2)}
+                        </td>
+                      </>
+                    )}
+                    {mode === 'score' && (
+                      <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                        {result.score.toFixed(2)}
+                      </td>
+                    )}
                     <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
-                      {result.score.toFixed(3)}
+                      {result.age.toFixed(0)}
                     </td>
                     <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                      {result.afp.toFixed(1)}
+                    </td>
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                      {result.alb.toFixed(1)}
+                    </td>
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                      {result.ggt.toFixed(1)}
+                    </td>
+
+                    {/* Divider */}
+                    <td className="px-1 py-2 sm:py-4 bg-gray-200"></td>
+
+                    {/* Prediction Results */}
+                    {mode === 'form' && (
+                      <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 bg-blue-50">
+                        {result.score.toFixed(3)}
+                      </td>
+                    )}
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 bg-blue-50">
                       {(result.probability * 100).toFixed(1)}%
                     </td>
-                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm bg-blue-50">
                       <span className={`px-1.5 sm:px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full
                         ${result.riskLevel === 'Low' ? 'bg-green-100 text-green-800' :
                           result.riskLevel === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
@@ -235,7 +309,7 @@ export default function BatchPrediction() {
                         {result.riskLevel}
                       </span>
                     </td>
-                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 bg-blue-50">
                       {result.imputedFields ? (
                         <span className="text-amber-600">{result.imputedFields}</span>
                       ) : (

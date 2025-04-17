@@ -110,8 +110,17 @@ export default {
         // Determine risk level
         const riskLevel = getRiskLevel(probability);
 
+        // Keep all original input fields and add prediction results
         results.push({
+          // Original input fields
           sampleId,
+          kcnq1: numKcnq1,
+          linc01785: numLinc01785,
+          age: numAge,
+          afp: numAfp,
+          alb: numAlb,
+          ggt: numGgt,
+          // Prediction results
           score,
           probability,
           riskLevel,
@@ -196,9 +205,16 @@ export default {
         // Determine risk level
         const riskLevel = getRiskLevel(probability);
 
+        // Keep all original input fields and add prediction results
         results.push({
+          // Original input fields
           sampleId,
           score: numScore,
+          age: numAge,
+          afp: numAfp,
+          alb: numAlb,
+          ggt: numGgt,
+          // Prediction results
           probability,
           riskLevel,
           imputedFields: imputedFields.length > 0 ? imputedFields.join(', ') : ''
