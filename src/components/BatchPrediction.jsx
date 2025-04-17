@@ -253,13 +253,13 @@ export default function BatchPrediction() {
               Total samples processed: {results.results.length}
             </p>
             <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
-              <p className="text-xs sm:text-sm text-blue-800 font-medium">空值处理说明：</p>
+              <p className="text-xs sm:text-sm text-blue-800 font-medium">Missing Value Handling:</p>
               <p className="text-xs text-blue-700 mt-1">
-                系统会自动处理CSV中的空值或无效值，使用偏向正常范围的保守值进行填充，以减少对结果的偏差。空值字段会在"Imputed Fields"列中标记。
+                The system automatically processes empty or invalid values in the CSV by filling them with conservative values within normal ranges to reduce bias in results. Missing fields are marked in the "Imputed Fields" column.
               </p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <p className="font-medium text-blue-800">保守默认值：</p>
+                  <p className="font-medium text-blue-800">Conservative Default Values:</p>
                   <ul className="text-blue-700 list-disc pl-4 space-y-0.5">
                     <li>KCNQ1-AS1: 1.5</li>
                     <li>LINC01785: 2.0</li>
@@ -267,11 +267,11 @@ export default function BatchPrediction() {
                   </ul>
                 </div>
                 <div>
-                  <p className="font-medium text-blue-800">正常范围默认值：</p>
+                  <p className="font-medium text-blue-800">Normal Range Default Values:</p>
                   <ul className="text-blue-700 list-disc pl-4 space-y-0.5">
-                    <li>年龄: 50岁</li>
+                    <li>Age: 50 years</li>
                     <li>AFP: 10 ng/mL</li>
-                    <li>白蛋白: 42 g/L</li>
+                    <li>Albumin: 42 g/L</li>
                     <li>γ-GT: 30 U/L</li>
                   </ul>
                 </div>
