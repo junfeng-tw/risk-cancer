@@ -45,39 +45,39 @@ export default function BatchPrediction() {
   // Handle file upload and prediction
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!file) {
       setError('Please select a CSV file');
       return;
     }
-    
+
     setIsProcessing(true);
     setError(null);
-    
+
     try {
       // Read file content
       const reader = new FileReader();
-      
+
       reader.onload = async (event) => {
         const csvContent = event.target.result;
-        
+
         // Process CSV content
         const result = await predictionService.predictFromCSV(csvContent, mode);
-        
+
         if (result.type === 'success') {
           setResults(result);
         } else {
           setError(result.message);
         }
-        
+
         setIsProcessing(false);
       };
-      
+
       reader.onerror = () => {
         setError('Error reading the file');
         setIsProcessing(false);
       };
-      
+
       reader.readAsText(file);
     } catch (error) {
       setError('An error occurred: ' + error.message);
@@ -93,14 +93,14 @@ export default function BatchPrediction() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h2 className="text-xl font-bold mb-4 text-gray-800">Batch Prediction</h2>
-      
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+    <div className="bg-white rounded-lg shadow-md p-4 sm:p-5 md:p-6 mb-6 sm:mb-8">
+      <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-800">Batch Prediction</h2>
+
+      <div className="mb-4 sm:mb-6">
+        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
           Prediction Mode
         </label>
-        <div className="flex space-x-4">
+        <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
           <label className="inline-flex items-center">
             <input
               type="radio"
@@ -110,7 +110,7 @@ export default function BatchPrediction() {
               checked={mode === 'form'}
               onChange={handleModeChange}
             />
-            <span className="ml-2">Form Input Mode</span>
+            <span className="ml-2 text-sm">Form Input Mode</span>
           </label>
           <label className="inline-flex items-center">
             <input
@@ -121,32 +121,32 @@ export default function BatchPrediction() {
               checked={mode === 'score'}
               onChange={handleModeChange}
             />
-            <span className="ml-2">Score Input Mode</span>
+            <span className="ml-2 text-sm">Score Input Mode</span>
           </label>
         </div>
-        <p className="text-sm text-gray-500 mt-1">
-          {mode === 'form' 
-            ? 'Upload CSV with sampleId, kcnq1, linc01785, age, afp, alb, ggt columns' 
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">
+          {mode === 'form'
+            ? 'Upload CSV with sampleId, kcnq1, linc01785, age, afp, alb, ggt columns'
             : 'Upload CSV with sampleId, score, age, afp, alb, ggt columns'}
         </p>
       </div>
-      
-      <div className="mb-6">
+
+      <div className="mb-4 sm:mb-6">
         <button
           type="button"
           onClick={handleDownloadTemplate}
-          className="inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-blue-300 text-xs sm:text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
           Download Template
         </button>
       </div>
-      
+
       <form onSubmit={handleSubmit}>
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
             Upload CSV File
           </label>
           <input
@@ -154,63 +154,63 @@ export default function BatchPrediction() {
             accept=".csv"
             onChange={handleFileChange}
             ref={fileInputRef}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
+            className="block w-full text-xs sm:text-sm text-gray-500
+              file:mr-3 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4
               file:rounded-md file:border-0
-              file:text-sm file:font-semibold
+              file:text-xs sm:file:text-sm file:font-semibold
               file:bg-blue-50 file:text-blue-700
               hover:file:bg-blue-100"
           />
           {file && (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500">
               Selected file: {file.name}
             </p>
           )}
           {error && (
-            <p className="mt-2 text-sm text-red-600">
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-600">
               {error}
             </p>
           )}
         </div>
-        
+
         <div className="flex justify-center">
           <LoadingButton loading={isProcessing} />
         </div>
       </form>
-      
+
       {results && results.type === 'success' && (
-        <div className="mt-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Prediction Results</h3>
+        <div className="mt-6 sm:mt-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 gap-2 sm:gap-0">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800">Prediction Results</h3>
             <button
               type="button"
               onClick={handleDownloadResults}
-              className="inline-flex items-center px-4 py-2 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-green-300 text-xs sm:text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
               Download Results
             </button>
           </div>
-          
-          <div className="overflow-x-auto">
+
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Sample ID
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Score
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Probability
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Risk Level
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Prediction
                   </th>
                 </tr>
@@ -218,24 +218,24 @@ export default function BatchPrediction() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {results.results.map((result, index) => (
                   <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
                       {result.sampleId}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                       {result.score.toFixed(3)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                       {(result.probability * 100).toFixed(1)}%
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${result.riskLevel === 'Low' ? 'bg-green-100 text-green-800' : 
-                          result.riskLevel === 'Moderate' ? 'bg-yellow-100 text-yellow-800' : 
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
+                      <span className={`px-1.5 sm:px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full
+                        ${result.riskLevel === 'Low' ? 'bg-green-100 text-green-800' :
+                          result.riskLevel === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-red-100 text-red-800'}`}>
                         {result.riskLevel}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                       {result.prediction === 1 ? 'High Risk' : 'Low/Moderate Risk'}
                     </td>
                   </tr>
@@ -243,8 +243,8 @@ export default function BatchPrediction() {
               </tbody>
             </table>
           </div>
-          
-          <p className="mt-4 text-sm text-gray-500">
+
+          <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-500">
             Total samples processed: {results.results.length}
           </p>
         </div>

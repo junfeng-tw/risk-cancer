@@ -16,10 +16,10 @@ export default function FormInput({
 
   return (
     <label className="block">
-      <div className="flex items-center mb-1.5">
-        <span className="text-gray-800 font-semibold text-sm tracking-wide">{metadata.label}</span>
+      <div className="flex items-center mb-1">
+        <span className="text-gray-800 font-semibold text-xs sm:text-sm tracking-wide">{metadata.label}</span>
       </div>
-      <div className="relative mt-2">
+      <div className="relative mt-1 sm:mt-2">
         <input
           type="number"
           step={limits.step}
@@ -29,7 +29,7 @@ export default function FormInput({
           value={value}
           onChange={onChange}
           onBlur={onBlur}
-          className={`block w-full h-12 rounded-lg border px-4 text-base transition-all duration-200 ease-in-out
+          className={`block w-full h-10 sm:h-12 rounded-lg border px-3 sm:px-4 text-sm sm:text-base transition-all duration-200 ease-in-out
             ${error ? 'border-red-300' : 'border-gray-300'}
             focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20
             shadow-sm hover:shadow-md
@@ -38,9 +38,9 @@ export default function FormInput({
         />
       </div>
       {error ? (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p className="mt-1 text-xs sm:text-sm text-red-600">{error}</p>
       ) : (
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-xs sm:text-sm text-gray-500">
           {customHint || metadata.hint || ''}
         </p>
       )}

@@ -74,7 +74,7 @@ export default function LiverCancerPredictor() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-gradient-to-br from-blue-50/30 to-indigo-50/30 min-h-screen">
+    <div className="max-w-4xl mx-auto p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-50/30 to-indigo-50/30 min-h-screen">
 
       <div className="bg-gradient-to-br from-gray-50 to-blue-50 shadow-xl rounded-2xl overflow-hidden">
         <Header />
@@ -82,24 +82,24 @@ export default function LiverCancerPredictor() {
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200">
           <button
-            className={`py-4 px-6 text-sm font-medium ${activeTab === 'individual' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`py-3 px-4 sm:py-4 sm:px-6 text-xs sm:text-sm font-medium ${activeTab === 'individual' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('individual')}
           >
             Individual Prediction
           </button>
           <button
-            className={`py-4 px-6 text-sm font-medium ${activeTab === 'batch' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`py-3 px-4 sm:py-4 sm:px-6 text-xs sm:text-sm font-medium ${activeTab === 'batch' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('batch')}
           >
             Batch Prediction
           </button>
         </div>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-6 md:p-8">
           {activeTab === 'individual' ? (
             <>
-              <form onSubmit={handleSubmit} className="space-y-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 md:space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-10">
                   {/* Biomarkers Section */}
                   <FormSection
                     title={FIELD_GROUPS.biomarkers.title}
@@ -123,7 +123,7 @@ export default function LiverCancerPredictor() {
                   />
                 </div>
 
-                <div className="flex justify-center mt-8">
+                <div className="flex justify-center mt-6 sm:mt-8">
                   <LoadingButton loading={isSubmitting} />
                 </div>
               </form>
