@@ -337,24 +337,24 @@ export default function BatchPrediction() {
             <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
               <p className="text-xs sm:text-sm text-blue-800 font-medium">Missing Value Handling:</p>
               <p className="text-xs text-blue-700 mt-1">
-                The system automatically processes empty or invalid values in the CSV by filling them with conservative values within normal ranges to reduce bias in results. Missing fields are marked in the "Imputed Fields" column.
+                The system automatically processes empty or invalid values in the CSV by filling them with values typical of healthy individuals. This approach is based on the clinical observation that missing tests often indicate healthier patients. Missing fields are marked in the "Imputed Fields" column.
               </p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <p className="font-medium text-blue-800">Conservative Default Values:</p>
+                  <p className="font-medium text-blue-800">Biomarker Default Values:</p>
                   <ul className="text-blue-700 list-disc pl-4 space-y-0.5">
-                    <li>KCNQ1-AS1: 1.5</li>
-                    <li>LINC01785: 2.0</li>
-                    <li>Score: 1.0</li>
+                    <li>KCNQ1-AS1: 1.0 (healthy range)</li>
+                    <li>LINC01785: 1.5 (healthy range)</li>
+                    <li>Score: 0.8 (healthy range)</li>
                   </ul>
                 </div>
                 <div>
-                  <p className="font-medium text-blue-800">Normal Range Default Values:</p>
+                  <p className="font-medium text-blue-800">Clinical Parameter Defaults:</p>
                   <ul className="text-blue-700 list-disc pl-4 space-y-0.5">
-                    <li>Age: 50 years</li>
-                    <li>AFP: 10 ng/mL</li>
-                    <li>Albumin: 42 g/L</li>
-                    <li>γ-GT: 30 U/L</li>
+                    <li>Age: 45 years (younger)</li>
+                    <li>AFP: 5 ng/mL (healthy level)</li>
+                    <li>Albumin: 45 g/L (optimal level)</li>
+                    <li>γ-GT: 20 U/L (healthy level)</li>
                   </ul>
                 </div>
               </div>

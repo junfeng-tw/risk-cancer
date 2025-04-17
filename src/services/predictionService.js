@@ -48,14 +48,14 @@ export default {
   async predictBatchFromForm(batchInputs) {
     try {
       const results = [];
-      // 使用更保守的默认值，偏向正常范围
+      // 使用偏向健康人群的默认值，因为空值通常意味着患者较为健康，某些检查没有进行
       const NORMAL_VALUES = {
-        kcnq1: 1.5,      // 偏向正常范围的保守值
-        linc01785: 2.0, // 偏向正常范围的保守值
-        age: 50,        // 中年人群的平均年龄
-        afp: 10,        // 正常AFP范围（<20 ng/mL）
-        alb: 42,        // 正常白蛋白范围（35-55 g/L）
-        ggt: 30         // 正常γ-GT范围（10-60 U/L）
+        kcnq1: 1.0,      // 偏向健康人群的低值
+        linc01785: 1.5, // 偏向健康人群的低值
+        age: 45,        // 偏年轻人群
+        afp: 5,         // 健康人群AFP值（通常<10 ng/mL）
+        alb: 45,        // 健康人群白蛋白值（偏高，更健康）
+        ggt: 20         // 健康人群γ-GT值（偏低，更健康）
       };
 
       for (const input of batchInputs) {
@@ -154,13 +154,13 @@ export default {
   async predictBatchFromScore(batchInputs) {
     try {
       const results = [];
-      // 使用更保守的默认值，偏向正常范围
+      // 使用偏向健康人群的默认值，因为空值通常意味着患者较为健康，某些检查没有进行
       const NORMAL_VALUES = {
-        score: 1.0,      // 偏向正常范围的保守值
-        age: 50,        // 中年人群的平均年龄
-        afp: 10,        // 正常AFP范围（<20 ng/mL）
-        alb: 42,        // 正常白蛋白范围（35-55 g/L）
-        ggt: 30         // 正常γ-GT范围（10-60 U/L）
+        score: 0.8,      // 偏向健康人群的低值
+        age: 45,        // 偏年轻人群
+        afp: 5,         // 健康人群AFP值（通常<10 ng/mL）
+        alb: 45,        // 健康人群白蛋白值（偏高，更健康）
+        ggt: 20         // 健康人群γ-GT值（偏低，更健康）
       };
 
       for (const input of batchInputs) {
