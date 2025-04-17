@@ -33,7 +33,7 @@ export const FIELD_GROUPS = {
     fields: ["kcnq1", "linc01785"]
   },
   clinical: {
-    title: "Liver Function Panel",
+    title: "Clinical Parameters",
     subtitle: "Serum markers & patient data",
     fields: ["age", "afp", "alb", "ggt"]
   }
