@@ -39,40 +39,7 @@ export default function BatchPrediction() {
 
   // Handle template download
   const handleDownloadTemplate = () => {
-    try {
-      predictionService.downloadTemplate(mode);
-    } catch (error) {
-      console.error('Error downloading template:', error);
-      // Fallback for iOS devices if the main method fails
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      if (isIOS) {
-        const content = mode === 'form' ? predictionService.getFormInputTemplate() : predictionService.getScoreInputTemplate();
-        const fileName = mode === 'form' ? 'form_input_template.csv' : 'score_input_template.csv';
-
-        // Create a preview modal with copy option
-        setError(
-          <div>
-            <p>iOS下载可能受限。请复制以下内容并保存为CSV文件：</p>
-            <textarea
-              className="w-full h-24 mt-2 p-2 border border-gray-300 rounded text-xs font-mono"
-              value={content}
-              readOnly
-              onClick={(e) => e.target.select()}
-            />
-            <button
-              className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs"
-              onClick={() => {
-                navigator.clipboard.writeText(content)
-                  .then(() => alert('内容已复制到剪贴板'))
-                  .catch(err => console.error('复制失败:', err));
-              }}
-            >
-              复制到剪贴板
-            </button>
-          </div>
-        );
-      }
-    }
+    predictionService.downloadTemplate(mode);
   };
 
   // Handle file upload and prediction
@@ -121,37 +88,7 @@ export default function BatchPrediction() {
   // Handle results download
   const handleDownloadResults = () => {
     if (results && results.results) {
-      try {
-        predictionService.downloadResults(results.results);
-      } catch (error) {
-        console.error('Error downloading results:', error);
-        // Fallback for iOS devices if the main method fails
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS) {
-          // Create a preview modal with copy option
-          setError(
-            <div>
-              <p>iOS下载可能受限。请复制以下内容并保存为CSV文件：</p>
-              <textarea
-                className="w-full h-24 mt-2 p-2 border border-gray-300 rounded text-xs font-mono"
-                value={results.csvContent}
-                readOnly
-                onClick={(e) => e.target.select()}
-              />
-              <button
-                className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs"
-                onClick={() => {
-                  navigator.clipboard.writeText(results.csvContent)
-                    .then(() => alert('内容已复制到剪贴板'))
-                    .catch(err => console.error('复制失败:', err));
-                }}
-              >
-                复制到剪贴板
-              </button>
-            </div>
-          );
-        }
-      }
+      predictionService.downloadResults(results.results);
     }
   };
 
