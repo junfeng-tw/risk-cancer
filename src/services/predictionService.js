@@ -124,6 +124,7 @@ export default {
           score,
           probability,
           riskLevel,
+          prediction: riskLevel === 'High' ? 1 : 0,  // Binary prediction (1 for High risk, 0 for Low/Moderate)
           imputedFields: imputedFields.length > 0 ? imputedFields.join(', ') : ''
         });
       }
@@ -217,6 +218,7 @@ export default {
           // Prediction results
           probability,
           riskLevel,
+          prediction: riskLevel === 'High' ? 1 : 0,  // Binary prediction (1 for High risk, 0 for Low/Moderate)
           imputedFields: imputedFields.length > 0 ? imputedFields.join(', ') : ''
         });
       }
