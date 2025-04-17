@@ -57,7 +57,7 @@ export const generateFormInputTemplate = () => {
   const headers = ['sampleId', 'kcnq1', 'linc01785', 'age', 'afp', 'alb', 'ggt'];
   const exampleRow = ['sample1', '2.5', '3.1', '55', '4224', '37.6', '108.3'];
   const emptyRow = ['sample2', '', '', '60', '', '40', ''];
-  const comment = ['# Note: Empty values will be automatically filled with values typical of healthy individuals. These fields will be marked in the results.'];
+  const comment = ['# Note: Empty values will be automatically filled with conservative default values. These fields will be marked in the results.'];
 
   return comment.join(',') + '\n' +
          headers.join(',') + '\n' +
@@ -73,7 +73,7 @@ export const generateScoreInputTemplate = () => {
   const headers = ['sampleId', 'score', 'age', 'afp', 'alb', 'ggt'];
   const exampleRow = ['sample1', '2.5', '55', '4224', '37.6', '108.3'];
   const emptyRow = ['sample2', '', '60', '', '40', ''];
-  const comment = ['# Note: Empty values will be automatically filled with values typical of healthy individuals. These fields will be marked in the results.'];
+  const comment = ['# Note: Empty values will be automatically filled with conservative default values. These fields will be marked in the results.'];
 
   return comment.join(',') + '\n' +
          headers.join(',') + '\n' +
