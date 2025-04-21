@@ -50,7 +50,7 @@ export const calculateScore = (kcnq1, linc01785) => {
  * @returns {string} - Risk level (Low, Moderate, High)
  */
 export const getRiskLevel = (probability) => {
-  if (probability < 0.3) return "Low";
-  if (probability < 0.7) return "Moderate";
+  if (probability < 0.2) return "Low";
+  if (probability < 0.5) return "Moderate";
   return "High";
 };
