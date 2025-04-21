@@ -5,9 +5,44 @@
   <link rel="icon" href="/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HCC Risk Assessment System | Powered by Machine Learning</title>
+
+  <!-- Preload WASM files from CDN -->
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort-wasm-simd-threaded.jsep.wasm" as="fetch" crossorigin="anonymous" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort-wasm-simd-threaded.wasm" as="fetch" crossorigin="anonymous" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort-wasm-simd.wasm" as="fetch" crossorigin="anonymous" />
+
+  <!-- Preload model file -->
+  <link rel="preload" href="./HistGradientBoosting.onnx" as="fetch" crossorigin="anonymous" />
 </head>
 <body class="bg-gray-50">
 <div id="root"></div>
+
+<!-- 预先加载配置脚本，确保在主应用加载前配置WASM路径 -->
+<script>
+  // 定义全局配置
+  window.__ONNX_CONFIG__ = {
+    wasmPaths: {
+      'ort-wasm-simd-threaded.jsep.wasm': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort-wasm-simd-threaded.jsep.wasm',
+      'ort-wasm-simd-threaded.wasm': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort-wasm-simd-threaded.wasm',
+      'ort-wasm-simd.wasm': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort-wasm-simd.wasm',
+      'ort-wasm-threaded.wasm': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort-wasm-threaded.wasm',
+      'ort-wasm.wasm': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort-wasm.wasm'
+    }
+  };
+
+  // 拦截和重写所有WASM请求
+  const originalFetch = window.fetch;
+  window.fetch = function(url, options) {
+    if (typeof url === 'string' && url.includes('onnxruntime-web') && url.endsWith('.wasm')) {
+      const fileName = url.split('/').pop();
+      const cdnUrl = `https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/${fileName}`;
+      console.log(`全局拦截WASM请求: ${url} -> ${cdnUrl}`);
+      return originalFetch(cdnUrl, options);
+    }
+    return originalFetch(url, options);
+  };
+</script>
+
 <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
