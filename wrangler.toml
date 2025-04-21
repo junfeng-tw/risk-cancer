@@ -1,16 +1,13 @@
 name = "risk-cancer"
 compatibility_date = "2024-02-21"
-main = "workers-site/index.js"
+main = "index.js"
 
-# 移除 [build] 部分，因为我们使用 [site] 来处理静态资产
+# 静态资产配置
 [site]
 bucket = "./dist"
+spa = true
 
 # 添加路由规则
 [[routes]]
 pattern = "/risk-cancer/*"
 zone_name = "zh-cn"
-
-# 静态资产配置
-[site.static]
-spa = true
