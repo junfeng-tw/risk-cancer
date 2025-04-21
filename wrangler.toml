@@ -1,15 +1,15 @@
 name = "risk-cancer"
 compatibility_date = "2024-02-21"
 
+# 移除 [build] 部分，因为我们使用 [site] 来处理静态资产
 [site]
 bucket = "./dist"
 
-[build]
-command = "npm run build"
-output_dir = "dist"
+# 添加路由规则
+[routes]
+pattern = "/risk-cancer/*"
+zone_name = "zh-cn"
 
-# 由于你的项目使用了 Vite 和 base path '/risk-cancer/'
-[env.production]
-routes = [
-  { pattern = "/risk-cancer/*", dest = "/risk-cancer/index.html" }
-]
+# 静态资产配置
+[site.static]
+spa = true
