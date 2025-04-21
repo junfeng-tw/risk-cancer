@@ -47,21 +47,30 @@ export default defineConfig({
   base: '/risk-cancer/',
   plugins: [
     react(),
-    redirectWasmRequests()
+    redirectWasmRequests() // 添加自定义插件
   ],
+
+  // ONNX配置：包含.onnx文件作为资源并排除onnxruntime-web依赖
+  assetsInclude: ["**/*.onnx"],
+  optimizeDeps: {
+    exclude: ["onnxruntime-web"],
+  },
+
+  // 完全排除WASM文件处理
   build: {
-    // 添加这些选项以确保正确处理静态资源
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          onnx: ['onnxruntime-web']
-        }
-      }
+    commonjsOptions: {
+      exclude: [/onnxruntime-web[\/]dist[\/].*\.wasm/],
     },
-    // 确保生成正确的资源链接
-    assetsDir: 'assets',
-    // 添加 source map 以便调试
-    sourcemap: true
-  }
+    rollupOptions: {
+      external: [/.*\.wasm/], // 将所有WASM文件标记为外部资源
+    }
+  },
+
+  // 配置解析，确保不会尝试处理WASM文件
+  resolve: {
+    alias: {
+      // 将所有WASM路径重定向到CDN
+      'onnxruntime-web/dist': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist',
+    },
+  },
 })
