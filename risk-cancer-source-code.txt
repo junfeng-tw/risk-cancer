@@ -1,0 +1,2268 @@
+===============================================
+肝癌风险评估系统 (HCC Risk Assessment System)
+源代码文档 - 用于软件著作权申请
+===============================================
+
+目录：
+
+1. 主应用组件
+   - src/LiverCancerPredictor.jsx
+
+2. 预测服务
+   - src/services/predictionService.js
+
+3. 预测模型
+   - src/predict.js
+
+4. 表单处理
+   - src/hooks/useForm.js
+
+5. 工具函数
+   - src/utils/formUtils.js
+   - src/utils/csvUtils.js
+
+6. 常量定义
+   - src/constants/paramLimits.js
+
+7. 组件文件
+   - src/components/ResultDisplay.jsx
+   - src/components/BatchPrediction.jsx
+   - src/components/FormSection.jsx
+   - src/components/FormInput.jsx
+   - src/components/Header.jsx
+   - src/components/Footer.jsx
+   - src/components/LoadingButton.jsx
+
+8. 配置文件
+   - vite.config.js
+
+9. Python模型训练
+   - python-train-model/filterv5.py
+   - python-train-model/model_compare_2.py
+
+10. 自动部署配置
+    - .github/workflows/deploy.yml
+
+===============================================
+以下为源代码内容：
+===============================================
+
+1. 主应用组件 (src/LiverCancerPredictor.jsx)
+-----------------------------------------------
+
+import { useState } from "react";
+import { INITIAL_FORM_VALUES, FIELD_GROUPS } from "./constants/paramLimits";
+import useForm from "./hooks/useForm";
+import predictionService from "./services/predictionService";
+
+// Components
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import FormSection from "./components/FormSection";
+import LoadingButton from "./components/LoadingButton";
+import ResultDisplay from "./components/ResultDisplay";
+import BatchPrediction from "./components/BatchPrediction";
+
+/**
+ * Main component for the Liver Cancer Prediction application
+ */
+export default function LiverCancerPredictor() {
+  const [result, setResult] = useState(null);
+  const [activeTab, setActiveTab] = useState('individual');
+  const {
+    inputs,
+    errors,
+    isSubmitting,
+    setIsSubmitting,
+    handleChange,
+    handleBlur,
+    validateForm
+  } = useForm(INITIAL_FORM_VALUES);
+
+  /**
+   * Handles form submission
+   * @param {Event} e - Submit event
+   */
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    // 记录开始时间
+    const startTime = Date.now();
+
+    // Validate all inputs
+    if (!validateForm()) {
+      setResult({
+        type: "error",
+        message: "Please correct the errors in the form."
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const predictionResult = await predictionService.predictRisk(inputs);
+      setResult(predictionResult);
+    } catch (error) {
+      console.error("Prediction error:", error);
+      setResult({
+        type: "error",
+        message: "An error occurred during prediction. Please try again."
+      });
+    } finally {
+      // 计算已经过去的时间
+      const elapsedTime = Date.now() - startTime;
+
+      // 如果处理时间少于1秒，则等待剩余时间再关闭加载状态
+      if (elapsedTime < 1000) {
+        setTimeout(() => {
+          setIsSubmitting(false);
+        }, 1000 - elapsedTime);
+      } else {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-50/30 to-indigo-50/30 min-h-screen">
+
+      <div className="bg-gradient-to-br from-gray-50 to-blue-50 shadow-xl rounded-2xl overflow-hidden">
+        <Header />
+
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-200">
+          <button
+            className={`py-3 px-4 sm:py-4 sm:px-6 text-xs sm:text-sm font-medium ${activeTab === 'individual' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('individual')}
+          >
+            Individual Prediction
+          </button>
+          <button
+            className={`py-3 px-4 sm:py-4 sm:px-6 text-xs sm:text-sm font-medium ${activeTab === 'batch' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('batch')}
+          >
+            Batch Prediction
+          </button>
+        </div>
+
+        <div className="p-4 sm:p-6 md:p-8">
+          {activeTab === 'individual' ? (
+            <>
+              <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 md:space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-10">
+                  {/* Biomarkers Section */}
+                  <FormSection
+                    title={FIELD_GROUPS.biomarkers.title}
+                    subtitle={FIELD_GROUPS.biomarkers.subtitle}
+                    fields={FIELD_GROUPS.biomarkers.fields}
+                    inputs={inputs}
+                    errors={errors}
+                    handleChange={handleChange}
+                    handleBlur={handleBlur}
+                  />
+
+                  {/* Clinical Parameters Section */}
+                  <FormSection
+                    title={FIELD_GROUPS.clinical.title}
+                    subtitle={FIELD_GROUPS.clinical.subtitle}
+                    fields={FIELD_GROUPS.clinical.fields}
+                    inputs={inputs}
+                    errors={errors}
+                    handleChange={handleChange}
+                    handleBlur={handleBlur}
+                  />
+                </div>
+
+                <div className="flex justify-center mt-6 sm:mt-8">
+                  <LoadingButton loading={isSubmitting} />
+                </div>
+              </form>
+
+              {/* 加载中显示占位符，非加载状态显示结果 */}
+              {isSubmitting && result ? (
+                <div className="mt-6 p-4 rounded-lg bg-gray-50 border border-gray-200 animate-pulse">
+                  <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="h-24 bg-gray-200 rounded"></div>
+                    <div className="h-24 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              ) : (
+                <ResultDisplay result={result} />
+              )}
+            </>
+          ) : (
+            <BatchPrediction />
+          )}
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  );
+}
+
+
+2. 预测服务 (src/services/predictionService.js)
+-----------------------------------------------
+
+import predict from '../predict';
+import { calculateScore, getRiskLevel } from '../utils/formUtils';
+import { objectsToCSV, downloadCSV, generateFormInputTemplate, generateScoreInputTemplate, parseCSV } from '../utils/csvUtils';
+
+/**
+ * Service for handling prediction logic
+ */
+export default {
+  /**
+   * Process form inputs and generate prediction
+   * @param {Object} inputs - Form input values
+   * @returns {Promise<Object>} - Prediction result
+   */
+  async predictRisk(inputs) {
+    try {
+      // Convert inputs to numbers
+      const values = Object.values(inputs).map(parseFloat);
+      const [kcnq1, linc01785, age, afp, alb, ggt] = values;
+
+      // Calculate lncRNA score
+      const score = calculateScore(kcnq1, linc01785);
+
+      // Get prediction from model
+      const probability = await predict([score, age, afp, alb, ggt]);
+
+      // Determine risk level
+      const riskLevel = getRiskLevel(probability);
+
+      return {
+        type: "success",
+        probability,
+        riskLevel
+      };
+    } catch (error) {
+      console.error("Prediction error:", error);
+      return {
+        type: "error",
+        message: "An error occurred during prediction. Please try again."
+      };
+    }
+  },
+
+  /**
+   * Process batch predictions from form inputs (kcnq1, linc01785, age, afp, alb, ggt)
+   * @param {Array<Object>} batchInputs - Array of input objects with sampleId and form values
+   * @returns {Promise<Object>} - Batch prediction results
+   */
+  async predictBatchFromForm(batchInputs) {
+    try {
+      const results = [];
+      // 使用更保守的默认值，偏向正常范围
+      const NORMAL_VALUES = {
+        kcnq1: 1.5,      // 偏向正常范围的保守值
+        linc01785: 2.0, // 偏向正常范围的保守值
+        age: 50,        // 中年人群的平均年龄
+        afp: 10,        // 正常AFP范围（<20 ng/mL）
+        alb: 42,        // 正常白蛋白范围（35-55 g/L）
+        ggt: 30         // 正常γ-GT范围（10-60 U/L）
+      };
+
+      for (const input of batchInputs) {
+        const { sampleId, kcnq1, linc01785, age, afp, alb, ggt } = input;
+        const imputedFields = [];
+
+        // Convert string values to numbers with empty value handling
+        let numKcnq1 = parseFloat(kcnq1);
+        let numLinc01785 = parseFloat(linc01785);
+        let numAge = parseFloat(age);
+        let numAfp = parseFloat(afp);
+        let numAlb = parseFloat(alb);
+        let numGgt = parseFloat(ggt);
+
+        // Handle empty or invalid values with conservative imputation
+        if (isNaN(numKcnq1)) {
+          numKcnq1 = NORMAL_VALUES.kcnq1; // 使用保守值
+          imputedFields.push('kcnq1');
+        }
+
+        if (isNaN(numLinc01785)) {
+          numLinc01785 = NORMAL_VALUES.linc01785; // 使用保守值
+          imputedFields.push('linc01785');
+        }
+
+        if (isNaN(numAge)) {
+          numAge = NORMAL_VALUES.age; // 使用保守值
+          imputedFields.push('age');
+        }
+
+        if (isNaN(numAfp)) {
+          numAfp = NORMAL_VALUES.afp; // 使用保守值
+          imputedFields.push('afp');
+        }
+
+        if (isNaN(numAlb)) {
+          numAlb = NORMAL_VALUES.alb; // 使用保守值
+          imputedFields.push('alb');
+        }
+
+        if (isNaN(numGgt)) {
+          numGgt = NORMAL_VALUES.ggt; // 使用保守值
+          imputedFields.push('ggt');
+        }
+
+        // Calculate lncRNA score
+        const score = calculateScore(numKcnq1, numLinc01785);
+
+        // Get prediction from model
+        const probability = await predict([score, numAge, numAfp, numAlb, numGgt]);
+
+        // Determine risk level
+        const riskLevel = getRiskLevel(probability);
+
+        // Keep all original input fields and add prediction results
+        results.push({
+          // Original input fields
+          sampleId,
+          kcnq1: numKcnq1,
+          linc01785: numLinc01785,
+          age: numAge,
+          afp: numAfp,
+          alb: numAlb,
+          ggt: numGgt,
+          // Prediction results
+          score,
+          probability,
+          riskLevel,
+          prediction: riskLevel === 'High' ? 1 : 0,  // Binary prediction (1 for High risk, 0 for Low/Moderate)
+          imputedFields: imputedFields.length > 0 ? imputedFields.join(', ') : ''
+        });
+      }
+
+      // Generate CSV content
+      const csvContent = objectsToCSV(results);
+
+      return {
+        type: "success",
+        results,
+        csvContent
+      };
+    } catch (error) {
+      console.error("Batch prediction error:", error);
+      return {
+        type: "error",
+        message: "An error occurred during batch prediction. Please check your input data and try again."
+      };
+    }
+  },
+
+  /**
+   * Process batch predictions from score inputs (score, age, afp, alb, ggt)
+   * @param {Array<Object>} batchInputs - Array of input objects with sampleId and score values
+   * @returns {Promise<Object>} - Batch prediction results
+   */
+  async predictBatchFromScore(batchInputs) {
+    try {
+      const results = [];
+      // 使用更保守的默认值，偏向正常范围
+      const NORMAL_VALUES = {
+        score: 1.0,      // 偏向正常范围的保守值
+        age: 50,        // 中年人群的平均年龄
+        afp: 10,        // 正常AFP范围（<20 ng/mL）
+        alb: 42,        // 正常白蛋白范围（35-55 g/L）
+        ggt: 30         // 正常γ-GT范围（10-60 U/L）
+      };
+
+      for (const input of batchInputs) {
+        const { sampleId, score, age, afp, alb, ggt } = input;
+        const imputedFields = [];
+
+        // Convert string values to numbers with empty value handling
+        let numScore = parseFloat(score);
+        let numAge = parseFloat(age);
+        let numAfp = parseFloat(afp);
+        let numAlb = parseFloat(alb);
+        let numGgt = parseFloat(ggt);
+
+        // Handle empty or invalid values with conservative imputation
+        if (isNaN(numScore)) {
+          numScore = NORMAL_VALUES.score; // 使用保守值
+          imputedFields.push('score');
+        }
+
+        if (isNaN(numAge)) {
+          numAge = NORMAL_VALUES.age; // 使用保守值
+          imputedFields.push('age');
+        }
+
+        if (isNaN(numAfp)) {
+          numAfp = NORMAL_VALUES.afp; // 使用保守值
+          imputedFields.push('afp');
+        }
+
+        if (isNaN(numAlb)) {
+          numAlb = NORMAL_VALUES.alb; // 使用保守值
+          imputedFields.push('alb');
+        }
+
+        if (isNaN(numGgt)) {
+          numGgt = NORMAL_VALUES.ggt; // 使用保守值
+          imputedFields.push('ggt');
+        }
+
+        // Get prediction from model
+        const probability = await predict([numScore, numAge, numAfp, numAlb, numGgt]);
+
+        // Determine risk level
+        const riskLevel = getRiskLevel(probability);
+
+        // Keep all original input fields and add prediction results
+        results.push({
+          // Original input fields
+          sampleId,
+          score: numScore,
+          age: numAge,
+          afp: numAfp,
+          alb: numAlb,
+          ggt: numGgt,
+          // Prediction results
+          probability,
+          riskLevel,
+          prediction: riskLevel === 'High' ? 1 : 0,  // Binary prediction (1 for High risk, 0 for Low/Moderate)
+          imputedFields: imputedFields.length > 0 ? imputedFields.join(', ') : ''
+        });
+      }
+
+      // Generate CSV content
+      const csvContent = objectsToCSV(results);
+
+      return {
+        type: "success",
+        results,
+        csvContent
+      };
+    } catch (error) {
+      console.error("Batch prediction error:", error);
+      return {
+        type: "error",
+        message: "An error occurred during batch prediction. Please check your input data and try again."
+      };
+    }
+  },
+
+  /**
+   * Process CSV content for batch prediction
+   * @param {string} csvContent - CSV content
+   * @param {string} mode - 'form' or 'score'
+   * @returns {Promise<Object>} - Batch prediction results
+   */
+  async predictFromCSV(csvContent, mode) {
+    try {
+      // Parse CSV content
+      const inputs = parseCSV(csvContent);
+
+      // Validate inputs
+      if (!inputs || inputs.length === 0) {
+        return {
+          type: "error",
+          message: "No valid data found in the CSV file."
+        };
+      }
+
+      // Process based on mode
+      if (mode === 'form') {
+        return await this.predictBatchFromForm(inputs);
+      } else if (mode === 'score') {
+        return await this.predictBatchFromScore(inputs);
+      } else {
+        return {
+          type: "error",
+          message: "Invalid prediction mode specified."
+        };
+      }
+    } catch (error) {
+      console.error("CSV prediction error:", error);
+      return {
+        type: "error",
+        message: "An error occurred while processing the CSV file. Please check the format and try again."
+      };
+    }
+  },
+
+  /**
+   * Download prediction results as CSV
+   * @param {Array<Object>} results - Prediction results
+   * @param {string} fileName - File name (default: 'prediction_results.csv')
+   */
+  downloadResults(results, fileName = 'prediction_results.csv') {
+    const csvContent = objectsToCSV(results);
+    downloadCSV(csvContent, fileName);
+  },
+
+  /**
+   * Get template CSV content for form input mode
+   * @returns {string} - CSV content
+   */
+  getFormInputTemplate() {
+    return generateFormInputTemplate();
+  },
+
+  /**
+   * Get template CSV content for score input mode
+   * @returns {string} - CSV content
+   */
+  getScoreInputTemplate() {
+    return generateScoreInputTemplate();
+  },
+
+  /**
+   * Download template CSV file
+   * @param {string} mode - 'form' or 'score'
+   */
+  downloadTemplate(mode) {
+    const fileName = mode === 'form' ? 'form_input_template.csv' : 'score_input_template.csv';
+    const content = mode === 'form' ? this.getFormInputTemplate() : this.getScoreInputTemplate();
+    downloadCSV(content, fileName);
+  }
+};
+
+
+3. 预测模型 (src/predict.js)
+-----------------------------------------------
+
+// 确保全局配置已经存在
+if (!window.__ONNX_CONFIG__) {
+  console.error('全局ONNX配置未找到，请确保在导入onnxruntime-web前加载配置');
+}
+
+// 在导入onnxruntime-web前先设置环境变量
+import * as ort from "onnxruntime-web";
+
+// 使用全局配置覆盖WASM路径
+if (window.__ONNX_CONFIG__?.wasmPaths) {
+  console.log('使用全局配置的WASM路径');
+  ort.env.wasm.wasmPaths = window.__ONNX_CONFIG__.wasmPaths;
+}
+
+// 确保使用CDN路径
+const CDN_BASE = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+
+// 添加路径重写函数，确保所有WASM请求都使用CDN
+ort.env.wasm.wasmPathOverride = (path) => {
+  // 提取文件名
+  const fileName = path.split('/').pop();
+  console.log(`WASM路径重写: ${path} -> ${CDN_BASE}${fileName}`);
+  // 返回CDN路径
+  return `${CDN_BASE}${fileName}`;
+};
+
+// 优化WASM执行
+ort.env.wasm.numThreads = 4; // 启用多线程支持
+ort.env.wasm.simd = true;    // 启用SIMD支持
+
+// Scaler means and standard deviations for input normalization
+const SCALER_MEANS = [2.5088337412890174, 55.01156069364162, 4224.481387283237, 37.57687861271676, 108.29479768786128];
+const SCALER_SCALES = [5.591347357350493, 12.830143534402424, 15972.701775588, 6.321121358433146, 126.6698855890084];
+
+/**
+ * Pre-load the model and cache the session at module level
+ * to avoid reloading the model for each prediction, improving efficiency.
+ */
+const sessionPromise = ort.InferenceSession.create("./HistGradientBoosting.onnx", {
+  executionProviders: ['wasm'],
+  graphOptimizationLevel: 'all'
+})
+    .then((session) => {
+        console.log("Model loaded successfully");
+        console.log("Model input names:", session.inputNames);
+        console.log("Model output names:", session.outputNames);
+        return session;
+    })
+    .catch((error) => {
+        console.error("Failed to load model:", error);
+        throw error;
+    });
+
+/**
+ * Standardize input data using pre-defined means and scales
+ * @param {Array<number>} rawInputs - Raw input array
+ * @returns {Array<number>} - Standardized data
+ */
+const standardizeInputs = (rawInputs) => {
+    console.log("Raw input values:", rawInputs);
+    const standardized = rawInputs.map((value, index) => {
+        const standardizedValue = (value - SCALER_MEANS[index]) / SCALER_SCALES[index];
+        console.log(`Input ${index + 1} standardized: ${value} -> ${standardizedValue}`);
+        return standardizedValue;
+    });
+    console.log("Standardized values:", standardized);
+    return standardized;
+};
+
+/**
+ * Prediction function that asynchronously returns the probability of class 1
+ * @param {Array<number>} input - Input data (array length should match SCALER_MEANS and SCALER_SCALES)
+ * @returns {Promise<number>} - Probability value (probability of class 1)
+ */
+async function predict(input) {
+    try {
+        // Preprocessing: standardize input data
+        const standardizedInput = standardizeInputs(input);
+
+        // Create ONNX tensor (automatically determine dimensions based on input length)
+        console.log("Creating ONNX tensor");
+        const tensor = new ort.Tensor("float32", Float32Array.from(standardizedInput), [1, standardizedInput.length]);
+        console.log("Tensor created:", tensor);
+
+        // Wait for model to load
+        const session = await sessionPromise;
+
+        // Set prediction input
+        const feeds = { float_input: tensor };
+        console.log("Ready for prediction, input:", feeds);
+
+        // Run the model
+        const results = await session.run(feeds);
+        console.log("Model execution complete, raw results:", results);
+
+        // Extract and process prediction results
+        console.log("=== Label Output ===");
+        const labelData = Array.from(results.label.data);
+        console.log("Label data:", labelData);
+
+        console.log("=== Probability Output ===");
+        const probData = Array.from(results.probabilities.data);
+        console.log("Probability data:", probData);
+
+        // Index 1 in the probability data array corresponds to the probability of class 1 (assuming only two classes)
+        console.log("Formatted probabilities:", { '0': probData[0], '1': probData[1] });
+        return probData[1];
+    } catch (error) {
+        console.error("Error during prediction:", error);
+        throw error;
+    }
+}
+
+export default predict;
+
+
+4. 表单处理 (src/hooks/useForm.js)
+-----------------------------------------------
+
+import { useState } from 'react';
+import { validateInput, validateAllInputs } from '../utils/formUtils';
+
+/**
+ * Custom hook for form handling with validation
+ * @param {Object} initialValues - Initial form values
+ * @returns {Object} - Form state and handlers
+ */
+export default function useForm(initialValues) {
+  const [inputs, setInputs] = useState(initialValues);
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /**
+   * Handles input change events
+   * @param {Event} e - Change event
+   */
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setInputs(prev => ({ ...prev, [name]: value }));
+
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  /**
+   * Handles input blur events (validates on blur)
+   * @param {Event} e - Blur event
+   */
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateInput(name, value);
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  /**
+   * Validates all form inputs
+   * @returns {boolean} - True if form is valid, false otherwise
+   */
+  const validateForm = () => {
+    const newErrors = validateAllInputs(inputs);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  /**
+   * Resets the form to initial values
+   */
+  const resetForm = () => {
+    setInputs(initialValues);
+    setErrors({});
+  };
+
+  return {
+    inputs,
+    errors,
+    isSubmitting,
+    setIsSubmitting,
+    handleChange,
+    handleBlur,
+    validateForm,
+    resetForm,
+    setInputs,
+    setErrors
+  };
+}
+
+
+5.1 工具函数 (src/utils/formUtils.js)
+-----------------------------------------------
+
+import { PARAM_LIMITS } from '../constants/paramLimits';
+
+/**
+ * Validates a single input field
+ * @param {string} name - Field name
+ * @param {string} value - Field value
+ * @returns {string|null} - Error message or null if valid
+ */
+export const validateInput = (name, value) => {
+  const limits = PARAM_LIMITS[name];
+  if (value === "") return "This field is required";
+
+  const numValue = parseFloat(value);
+  if (isNaN(numValue)) return "Must be a valid number";
+  if (numValue < limits.min) return `Minimum value is ${limits.min}`;
+  if (numValue > limits.max) return `Maximum value is ${limits.max}`;
+
+  return null;
+};
+
+/**
+ * Validates all form inputs
+ * @param {Object} inputs - Form input values
+ * @returns {Object} - Object with field names as keys and error messages as values
+ */
+export const validateAllInputs = (inputs) => {
+  const errors = {};
+
+  Object.entries(inputs).forEach(([name, value]) => {
+    const error = validateInput(name, value);
+    if (error) errors[name] = error;
+  });
+
+  return errors;
+};
+
+/**
+ * Calculates the lncRNA score based on KCNQ1-AS1 and LINC01785 values
+ * @param {number} kcnq1 - KCNQ1-AS1 expression level
+ * @param {number} linc01785 - LINC01785 expression level
+ * @returns {number} - Calculated score
+ */
+export const calculateScore = (kcnq1, linc01785) => {
+  return kcnq1 * 1.13 + linc01785 * 1.167 - 3.395;
+};
+
+/**
+ * Determines risk level based on probability
+ * @param {number} probability - Risk probability (0-1)
+ * @returns {string} - Risk level (Low, Moderate, High)
+ */
+export const getRiskLevel = (probability) => {
+  if (probability < 0.2) return "Low";
+  if (probability < 0.5) return "Moderate";
+  return "High";
+};
+
+
+5.2. 工具函数 (src/utils/csvUtils.js)
+-----------------------------------------------
+
+/**
+ * Utilities for CSV operations
+ */
+
+/**
+ * Convert array of objects to CSV string
+ * @param {Array<Object>} data - Array of objects to convert
+ * @returns {string} - CSV string
+ */
+export const objectsToCSV = (data) => {
+  if (!data || !data.length) return '';
+
+  const headers = Object.keys(data[0]);
+  const csvRows = [];
+
+  // Add header row
+  csvRows.push(headers.join(','));
+
+  // Add data rows
+  for (const row of data) {
+    const values = headers.map(header => {
+      const value = row[header];
+      // Handle values that might contain commas or quotes
+      const escaped = String(value).replace(/"/g, '""');
+      return `"${escaped}"`;
+    });
+    csvRows.push(values.join(','));
+  }
+
+  return csvRows.join('\n');
+};
+
+/**
+ * Create and trigger download of a CSV file
+ * @param {string} csvContent - CSV content
+ * @param {string} fileName - File name
+ */
+export const downloadCSV = (csvContent, fileName) => {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.setAttribute('href', url);
+  link.setAttribute('download', fileName);
+  link.style.visibility = 'hidden';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+/**
+ * Generate a template for form input mode
+ * @returns {string} - CSV content
+ */
+export const generateFormInputTemplate = () => {
+  const headers = ['sampleId', 'kcnq1', 'linc01785', 'age', 'afp', 'alb', 'ggt'];
+  const exampleRow = ['sample1', '2.5', '3.1', '55', '4224', '37.6', '108.3'];
+  const emptyRow = ['sample2', '', '', '60', '', '40', ''];
+  const comment = ['# Note: Empty values will be automatically filled with conservative default values. These fields will be marked in the results.'];
+
+  return comment.join(',') + '\n' +
+         headers.join(',') + '\n' +
+         exampleRow.join(',') + '\n' +
+         emptyRow.join(',');
+};
+
+/**
+ * Generate a template for score input mode
+ * @returns {string} - CSV content
+ */
+export const generateScoreInputTemplate = () => {
+  const headers = ['sampleId', 'score', 'age', 'afp', 'alb', 'ggt'];
+  const exampleRow = ['sample1', '2.5', '55', '4224', '37.6', '108.3'];
+  const emptyRow = ['sample2', '', '60', '', '40', ''];
+  const comment = ['# Note: Empty values will be automatically filled with conservative default values. These fields will be marked in the results.'];
+
+  return comment.join(',') + '\n' +
+         headers.join(',') + '\n' +
+         exampleRow.join(',') + '\n' +
+         emptyRow.join(',');
+};
+
+/**
+ * Parse CSV content to array of objects
+ * @param {string} csvContent - CSV content
+ * @returns {Array<Object>} - Array of objects
+ */
+export const parseCSV = (csvContent) => {
+  const lines = csvContent.split('\n');
+  const headers = lines[0].split(',').map(header => header.trim());
+  const result = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+
+    const values = parseCSVLine(lines[i]);
+    const obj = {};
+
+    headers.forEach((header, index) => {
+      obj[header] = values[index];
+    });
+
+    result.push(obj);
+  }
+
+  return result;
+};
+
+/**
+ * Parse a CSV line, handling quoted values
+ * @param {string} line - CSV line
+ * @returns {Array<string>} - Array of values
+ */
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      // Handle escaped quotes (two double quotes in a row)
+      if (i + 1 < line.length && line[i + 1] === '"') {
+        current += '"';
+        i++; // Skip the next quote
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // End of field
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  // Add the last field
+  result.push(current.trim());
+
+  return result;
+}
+
+
+6. 常量定义 (src/constants/paramLimits.js)
+-----------------------------------------------
+
+/**
+ * Parameter limits for the liver cancer prediction model
+ * Defines the valid ranges and step sizes for each input parameter
+ */
+export const PARAM_LIMITS = {
+  kcnq1: { min: 0,  step: 0.001 },
+  linc01785: { min: 0,  step: 0.001 },
+  age: { min: 18, max: 120, step: 1 },
+  afp: { min: 0, step: 0.1 }, // AFP can be very high
+  alb: { min: 10, step: 0.1 }, // Normal albumin range is about 35-55 g/L
+  ggt: { min: 0, step: 1 } // Normal γ-GT range is about 10-60 U/L
+};
+
+/**
+ * Initial form values
+ */
+export const INITIAL_FORM_VALUES = {
+  kcnq1: "",
+  linc01785: "",
+  age: "",
+  afp: "",
+  alb: "",
+  ggt: ""
+};
+
+/**
+ * Field groups for organizing the form
+ */
+export const FIELD_GROUPS = {
+  biomarkers: {
+    title: "lncRNA Biomarkers",
+    subtitle: "EV-derived",
+    fields: ["kcnq1", "linc01785"]
+  },
+  clinical: {
+    title: "Clinical Parameters",
+    subtitle: "Serum markers & patient data",
+    fields: ["age", "afp", "alb", "ggt"]
+  }
+};
+
+/**
+ * Field labels and descriptions
+ */
+export const FIELD_METADATA = {
+  kcnq1: {
+    label: "KCNQ1-AS1 Expression Level in EVs",
+    placeholder: "Enter KCNQ1-AS1 value"
+  },
+  linc01785: {
+    label: "LINC01785 Expression Level in EVs",
+    placeholder: "Enter LINC01785 value"
+  },
+  age: {
+    label: "Age (years)",
+    placeholder: "Enter patient age"
+  },
+  afp: {
+    label: "AFP Level (ng/mL)",
+    placeholder: "Enter AFP value"
+  },
+  alb: {
+    label: "Albumin (g/L)",
+    placeholder: "Enter albumin value"
+  },
+  ggt: {
+    label: "γ-GT (U/L)",
+    placeholder: "Enter γ-GT value"
+  }
+};
+
+
+7.1. 组件文件 (src/components/ResultDisplay.jsx)
+-----------------------------------------------
+
+/**
+ * Component to display prediction results
+ */
+export default function ResultDisplay({ result }) {
+  if (!result) return null;
+
+  if (result.type === 'error') {
+    return (
+      <div className="mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg bg-red-50">
+        <p className="text-sm sm:text-base text-red-700">{result.message}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 sm:mt-8 p-4 sm:p-6 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 shadow-md">
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex items-center mb-2 pb-2 border-b border-blue-200">
+          <div className="mr-2 p-1 sm:p-1.5 rounded-md bg-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+              <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+            </svg>
+          </div>
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900">Analysis Results</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <ResultCard
+            label="Risk Probability"
+            value={`${(result.probability * 100).toFixed(1)}%`}
+            color="text-blue-600"
+          />
+          <ResultCard
+            label="Risk Level"
+            value={result.riskLevel}
+            color={getRiskLevelColor(result.riskLevel)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Card component for displaying individual result values
+ */
+function ResultCard({ label, value, color }) {
+  return (
+    <div className="p-3 sm:p-4 md:p-5 bg-white rounded-lg shadow-md border border-indigo-100 hover:shadow-lg transition-all duration-300 hover:border-indigo-200">
+      <p className="text-xs sm:text-sm text-gray-500">{label}</p>
+      <p className={`text-xl sm:text-2xl font-bold ${color}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Helper function to get color based on risk level
+ */
+function getRiskLevelColor(riskLevel) {
+  switch (riskLevel) {
+    case 'Low':
+      return 'text-green-600';
+    case 'Moderate':
+      return 'text-yellow-600';
+    case 'High':
+      return 'text-red-600';
+    default:
+      return 'text-blue-600';
+  }
+}
+
+7.2. 组件文件 (src/components/BatchPrediction.jsx)
+-----------------------------------------------
+
+import { useState, useRef } from 'react';
+import predictionService from '../services/predictionService';
+import LoadingButton from './LoadingButton';
+
+/**
+ * Batch Prediction Component
+ * Allows users to upload CSV files for batch prediction and download templates
+ */
+export default function BatchPrediction() {
+  const [mode, setMode] = useState('form');
+  const [file, setFile] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [results, setResults] = useState(null);
+  const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // Handle mode change
+  const handleModeChange = (e) => {
+    setMode(e.target.value);
+    setFile(null);
+    setResults(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle file selection
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile && selectedFile.type === 'text/csv') {
+      setFile(selectedFile);
+      setError(null);
+    } else {
+      setFile(null);
+      setError('Please select a valid CSV file');
+    }
+  };
+
+  // Handle template download
+  const handleDownloadTemplate = () => {
+    predictionService.downloadTemplate(mode);
+  };
+
+  // Handle file upload and prediction
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!file) {
+      setError('Please select a CSV file');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // Read file content
+      const reader = new FileReader();
+
+      reader.onload = async (event) => {
+        const csvContent = event.target.result;
+
+        // Process CSV content
+        const result = await predictionService.predictFromCSV(csvContent, mode);
+
+        if (result.type === 'success') {
+          setResults(result);
+        } else {
+          setError(result.message);
+        }
+
+        setIsProcessing(false);
+      };
+
+      reader.onerror = () => {
+        setError('Error reading the file');
+        setIsProcessing(false);
+      };
+
+      reader.readAsText(file);
+    } catch (error) {
+      setError('An error occurred: ' + error.message);
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle results download
+  const handleDownloadResults = () => {
+    if (results && results.results) {
+      predictionService.downloadResults(results.results);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-4 sm:p-5 md:p-6 mb-6 sm:mb-8">
+      <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-800">Batch Prediction</h2>
+
+      <div className="mb-4 sm:mb-6">
+        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+          Prediction Mode
+        </label>
+        <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
+          <label className="inline-flex items-center">
+            <input
+              type="radio"
+              className="form-radio text-blue-600"
+              name="predictionMode"
+              value="form"
+              checked={mode === 'form'}
+              onChange={handleModeChange}
+            />
+            <span className="ml-2 text-sm">Form Input Mode</span>
+          </label>
+          <label className="inline-flex items-center">
+            <input
+              type="radio"
+              className="form-radio text-blue-600"
+              name="predictionMode"
+              value="score"
+              checked={mode === 'score'}
+              onChange={handleModeChange}
+            />
+            <span className="ml-2 text-sm">Score Input Mode</span>
+          </label>
+        </div>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">
+          {mode === 'form'
+            ? 'Upload CSV with sampleId, kcnq1, linc01785, age, afp, alb, ggt columns'
+            : 'Upload CSV with sampleId, score, age, afp, alb, ggt columns'}
+        </p>
+      </div>
+
+      <div className="mb-4 sm:mb-6">
+        <button
+          type="button"
+          onClick={handleDownloadTemplate}
+          className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-blue-300 text-xs sm:text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+          Download Template
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+            Upload CSV File
+          </label>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            ref={fileInputRef}
+            className="block w-full text-xs sm:text-sm text-gray-500
+              file:mr-3 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4
+              file:rounded-md file:border-0
+              file:text-xs sm:file:text-sm file:font-semibold
+              file:bg-blue-50 file:text-blue-700
+              hover:file:bg-blue-100"
+          />
+          {file && (
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500">
+              Selected file: {file.name}
+            </p>
+          )}
+          {error && (
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-600">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <div className="flex justify-center">
+          <LoadingButton loading={isProcessing} />
+        </div>
+      </form>
+
+      {results && results.type === 'success' && (
+        <div className="mt-6 sm:mt-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 gap-2 sm:gap-0">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800">Prediction Results</h3>
+            <button
+              type="button"
+              onClick={handleDownloadResults}
+              className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-green-300 text-xs sm:text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              Download Results
+            </button>
+          </div>
+
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="flex justify-between mb-2">
+              <div className="text-xs sm:text-sm font-medium text-gray-700">Input Data</div>
+              <div className="text-xs sm:text-sm font-medium text-blue-700">Prediction Results</div>
+            </div>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {/* Original Input Fields */}
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Sample ID
+                  </th>
+                  {mode === 'form' && (
+                    <>
+                      <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        KCNQ1-AS1
+                      </th>
+                      <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        LINC01785
+                      </th>
+                    </>
+                  )}
+                  {mode === 'score' && (
+                    <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Score
+                    </th>
+                  )}
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Age
+                  </th>
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    AFP
+                  </th>
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ALB
+                  </th>
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    γ-GT
+                  </th>
+
+                  {/* Divider */}
+                  <th scope="col" className="px-1 py-2 sm:py-3 bg-gray-200"></th>
+
+                  {/* Prediction Results */}
+                  {mode === 'form' && (
+                    <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
+                      Score
+                    </th>
+                  )}
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
+                    Probability
+                  </th>
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
+                    Risk Level
+                  </th>
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
+                    Prediction (0/1)
+                  </th>
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
+                    Imputed Fields
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {results.results.map((result, index) => (
+                  <tr key={index}>
+                    {/* Original Input Fields */}
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
+                      {result.sampleId}
+                    </td>
+                    {mode === 'form' && (
+                      <>
+                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                          {result.kcnq1.toFixed(2)}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                          {result.linc01785.toFixed(2)}
+                        </td>
+                      </>
+                    )}
+                    {mode === 'score' && (
+                      <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                        {result.score.toFixed(2)}
+                      </td>
+                    )}
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                      {result.age.toFixed(0)}
+                    </td>
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                      {result.afp.toFixed(1)}
+                    </td>
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                      {result.alb.toFixed(1)}
+                    </td>
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                      {result.ggt.toFixed(1)}
+                    </td>
+
+                    {/* Divider */}
+                    <td className="px-1 py-2 sm:py-4 bg-gray-200"></td>
+
+                    {/* Prediction Results */}
+                    {mode === 'form' && (
+                      <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 bg-blue-50">
+                        {result.score.toFixed(3)}
+                      </td>
+                    )}
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 bg-blue-50">
+                      {(result.probability * 100).toFixed(1)}%
+                    </td>
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm bg-blue-50">
+                      <span className={`px-1.5 sm:px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full
+                        ${result.riskLevel === 'Low' ? 'bg-green-100 text-green-800' :
+                          result.riskLevel === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'}`}>
+                        {result.riskLevel}
+                      </span>
+                    </td>
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium bg-blue-50">
+                      <span className={`px-2 py-1 rounded ${result.prediction === 1 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                        {result.prediction}
+                      </span>
+                    </td>
+                    <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 bg-blue-50">
+                      {result.imputedFields ? (
+                        <span className="text-amber-600">{result.imputedFields}</span>
+                      ) : (
+                        <span className="text-green-600">None</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-3 sm:mt-4 space-y-2">
+            <p className="text-xs sm:text-sm text-gray-500">
+              Total samples processed: {results.results.length}
+            </p>
+            <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+              <p className="text-xs sm:text-sm text-blue-800 font-medium">Missing Value Handling:</p>
+              <p className="text-xs text-blue-700 mt-1">
+                The system automatically processes empty or invalid values in the CSV by filling them with conservative values within normal ranges to reduce bias in results. Missing fields are marked in the "Imputed Fields" column.
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="font-medium text-blue-800">Conservative Default Values:</p>
+                  <ul className="text-blue-700 list-disc pl-4 space-y-0.5">
+                    <li>KCNQ1-AS1: 1.5</li>
+                    <li>LINC01785: 2.0</li>
+                    <li>Score: 1.0</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-blue-800">Normal Range Default Values:</p>
+                  <ul className="text-blue-700 list-disc pl-4 space-y-0.5">
+                    <li>Age: 50 years</li>
+                    <li>AFP: 10 ng/mL</li>
+                    <li>Albumin: 42 g/L</li>
+                    <li>γ-GT: 30 U/L</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+7.3. 组件文件 (src/components/FormSection.jsx)
+-----------------------------------------------
+
+import FormInput from './FormInput';
+
+/**
+ * Component for grouping related form inputs
+ */
+export default function FormSection({ title, subtitle, fields, inputs, errors, handleChange, handleBlur }) {
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 sm:p-5 md:p-6 border border-blue-100 hover:shadow-md transition-all duration-300 hover:border-blue-200">
+      <div className="mb-4 sm:mb-5">
+        {/* 标题容器 */}
+        <div className="flex flex-col mb-2 sm:mb-3">
+          {/* Section icon */}
+          <div className="flex items-center mb-2">
+            <div className="flex-shrink-0 mr-2 sm:mr-3 p-1.5 sm:p-2 rounded-md bg-gradient-to-r from-blue-500 to-blue-600 shadow-sm">
+              {title.includes("Biomarkers") ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7 2a1 1 0 00-.707 1.707L7 4.414v3.758a1 1 0 01-.293.707l-4 4C.817 14.769 2.156 18 4.828 18h10.343c2.673 0 4.012-3.231 2.122-5.121l-4-4A1 1 0 0113 8.172V4.414l.707-.707A1 1 0 0013 2H7zm2 6.172V4h2v4.172a3 3 0 00.879 2.12l1.027 1.028a4 4 0 00-2.171.102l-.47.156a4 4 0 01-2.53 0l-.563-.187a1.993 1.993 0 00-.114-.035l1.063-1.063A3 3 0 009 8.172z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800 leading-tight">{title}</h2>
+              {subtitle && <p className="text-xs sm:text-sm text-gray-500">{subtitle}</p>}
+            </div>
+          </div>
+        </div>
+        {/* Gradient divider */}
+        <div className="h-0.5 w-full bg-gradient-to-r from-blue-500 to-transparent rounded-full"></div>
+      </div>
+      <div className="space-y-4 sm:space-y-5">
+        {fields.map(fieldName => (
+          <FormInput
+            key={fieldName}
+            name={fieldName}
+            value={inputs[fieldName]}
+            error={errors[fieldName]}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+7.4. 组件文件 (src/components/FormInput.jsx)
+-----------------------------------------------
+
+import { PARAM_LIMITS, FIELD_METADATA } from '../constants/paramLimits';
+
+/**
+ * Reusable form input component for numeric inputs with validation
+ */
+export default function FormInput({
+  name,
+  value,
+  error,
+  onChange,
+  onBlur,
+  customHint
+}) {
+  const metadata = FIELD_METADATA[name];
+  const limits = PARAM_LIMITS[name];
+
+  return (
+    <label className="block">
+      <div className="flex items-center mb-1">
+        <span className="text-gray-800 font-semibold text-xs sm:text-sm tracking-wide">{metadata.label}</span>
+      </div>
+      <div className="relative mt-1 sm:mt-2">
+        <input
+          type="number"
+          step={limits.step}
+          min={limits.min}
+          max={limits.max}
+          name={name}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          className={`block w-full h-10 sm:h-12 rounded-lg border px-3 sm:px-4 text-sm sm:text-base transition-all duration-200 ease-in-out
+            ${error ? 'border-red-300' : 'border-gray-300'}
+            focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20
+            shadow-sm hover:shadow-md
+          `}
+          placeholder={metadata.placeholder}
+        />
+      </div>
+      {error ? (
+        <p className="mt-1 text-xs sm:text-sm text-red-600">{error}</p>
+      ) : (
+        <p className="mt-1 text-xs sm:text-sm text-gray-500">
+          {customHint || metadata.hint || ''}
+        </p>
+      )}
+    </label>
+  );
+}
+
+
+7.7. 组件文件 (src/components/LoadingButton.jsx)
+-----------------------------------------------
+
+/**
+ * Button component with loading state
+ */
+export default function LoadingButton({ loading, onClick, type = "submit", className = "" }) {
+  return (
+    <div className="flex flex-col items-center">
+      <button
+        type={type}
+        onClick={onClick}
+        disabled={loading}
+        className={`px-6 sm:px-8 md:px-10 py-3 sm:py-4 text-sm sm:text-base font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg
+          hover:from-blue-700 hover:to-blue-800 transition-all duration-200 ease-in-out
+          focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2
+          transform hover:scale-105 active:scale-95 min-w-[180px] sm:min-w-[220px] md:min-w-[240px]
+          ${loading ? 'opacity-75 cursor-not-allowed' : ''} ${className}`}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center">
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+          </span>
+        ) : (
+          <span className="flex items-center justify-center">
+            Calculate Risk Score
+          </span>
+        )}
+      </button>
+      <p className="mt-2 text-xs text-gray-500">Results will appear below</p>
+    </div>
+  );
+}
+
+
+7.5. 组件文件 (src/components/Header.jsx)
+-----------------------------------------------
+
+/**
+ * Header component for the application
+ */
+export default function Header() {
+  return (
+    <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-tight">Hepatocellular Carcinoma Risk Assessment System</h1>
+        <p className="text-blue-100 text-xs sm:text-sm mt-1 font-medium">POWERED BY <span className="text-yellow-400">AEGA-EV</span><sup>™</sup> BIOMARKER TECHNOLOGY</p>
+      </div>
+      <div className="bg-blue-900/40 px-3 py-1 rounded-md border border-blue-400/30 self-start sm:self-center">
+        <p className="text-xs text-blue-200 font-mono whitespace-nowrap">ML.HistGBoost</p>
+      </div>
+    </div>
+  );
+}
+
+
+7.6. 组件文件 (src/components/Footer.jsx)
+-----------------------------------------------
+
+/**
+ * Footer component for the application
+ */
+export default function Footer() {
+  return (
+    <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-gray-500 px-4 py-2">
+      <p>© {new Date().getFullYear()} HCC Risk Assessment System. All rights reserved.</p>
+      <p className="mt-1">
+        Published in Nature Communications | DOI: 10.1038/s41467-XXX-XXXXX-X
+      </p>
+    </div>
+  );
+}
+
+9.1. 配置文件 (vite.config.js)
+-----------------------------------------------
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// 自定义插件，用于拦截和重定向WASM请求
+function redirectWasmRequests() {
+  const CDN_BASE = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+
+  return {
+    name: 'redirect-wasm-requests',
+    configureServer(server) {
+      // 在开发服务器中拦截WASM请求
+      server.middlewares.use((req, res, next) => {
+        if (req.url && req.url.includes('onnxruntime-web') && req.url.endsWith('.wasm')) {
+          const fileName = req.url.split('/').pop();
+          const cdnUrl = `${CDN_BASE}${fileName}`;
+          console.log(`拦截WASM请求: ${req.url} -> ${cdnUrl}`);
+          res.writeHead(302, { 'Location': cdnUrl });
+          res.end();
+          return;
+        }
+        next();
+      });
+    },
+    // 在构建时也处理WASM路径
+    transform(code, id) {
+      if (id.includes('onnxruntime-web') && code.includes('.wasm')) {
+        // 替换代码中的WASM路径引用
+        return code.replace(
+          /['"]([^'"]*\.wasm)['"]|([^a-zA-Z0-9_])(https?:\/\/[^'"]*\.wasm)/g,
+          (match, p1, p2, p3) => {
+            if (p1) {
+              const fileName = p1.split('/').pop();
+              return `"${CDN_BASE}${fileName}"`;
+            } else if (p3) {
+              return `${p2}${CDN_BASE}${p3.split('/').pop()}`;
+            }
+            return match;
+          }
+        );
+      }
+    }
+  };
+}
+
+// https://vite.dev/config/
+export default defineConfig({
+  base: '/risk-cancer/',
+  plugins: [
+    react(),
+    redirectWasmRequests() // 添加自定义插件
+  ],
+
+  // ONNX配置：包含.onnx文件作为资源并排除onnxruntime-web依赖
+  assetsInclude: ["**/*.onnx"],
+  optimizeDeps: {
+    exclude: ["onnxruntime-web"],
+  },
+
+  // 完全排除WASM文件处理
+  build: {
+    commonjsOptions: {
+      exclude: [/onnxruntime-web[\/]dist[\/].*\.wasm/],
+    },
+    rollupOptions: {
+      external: [/.*\.wasm/], // 将所有WASM文件标记为外部资源
+    }
+  },
+
+  // 配置解析，确保不会尝试处理WASM文件
+  resolve: {
+    alias: {
+      // 将所有WASM路径重定向到CDN
+      'onnxruntime-web/dist': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist',
+    },
+  },
+})
+
+
+
+9.1. Python模型训练 (python-train-model/filterv5.py)
+-----------------------------------------------
+
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegressionCV
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.metrics import roc_auc_score, recall_score
+from sklearn.preprocessing import StandardScaler
+from scipy.stats import randint
+import matplotlib.pyplot as plt
+from collections import defaultdict
+import shap
+import os
+import warnings
+warnings.filterwarnings("ignore")
+
+# === 创建输出目录 ===
+os.makedirs("python-train-model/output/results/n5", exist_ok=True)
+os.makedirs("python-train-model/output/shap_plots/n5", exist_ok=True)
+
+# === 1. 加载数据 ===
+train_df = pd.read_csv("python-train-model/data/Train_expr.csv")
+test_df = pd.read_csv("python-train-model/data/Test_expr.csv")
+
+train_df["Cohort"] = "Train"
+test_df["Cohort"] = "Test"
+all_df = pd.concat([train_df, test_df], ignore_index=True)
+
+y = all_df["Group"]
+cohort = all_df["Cohort"]
+
+feature_cols = all_df.select_dtypes(include=[np.number]).columns.tolist()
+feature_cols = [col for col in feature_cols if col != "Group"]
+X = all_df[feature_cols]
+
+# === 2. 按 Cohort 标准化 ===
+X_scaled = pd.DataFrame(index=X.index, columns=X.columns)
+for grp in cohort.unique():
+    idx = cohort == grp
+    scaler = StandardScaler()
+    X_scaled.loc[idx, :] = scaler.fit_transform(X.loc[idx, :])
+X_scaled = X_scaled.astype(float)
+
+X_train = X_scaled[cohort == "Train"]
+y_train = y[cohort == "Train"]
+X_test = X_scaled[cohort == "Test"]
+y_test = y[cohort == "Test"]
+
+# === 3. Lasso 变量初筛 ===
+lasso = LogisticRegressionCV(
+    cv=10, penalty='l1', solver='saga', scoring='roc_auc',
+    max_iter=10000, random_state=42
+)
+lasso.fit(X_train, y_train)
+coef = lasso.coef_[0]
+selected_features = X_train.columns[coef != 0]
+
+lasso_importance = pd.DataFrame({
+    "Feature": X_train.columns,
+    "Lasso_Coefficient": coef
+})
+lasso_importance = lasso_importance[lasso_importance["Lasso_Coefficient"] != 0]
+lasso_importance["Abs_Coefficient"] = lasso_importance["Lasso_Coefficient"].abs()
+lasso_importance.sort_values("Abs_Coefficient", ascending=False, inplace=True)
+lasso_importance.to_csv("python-train-model/output/results/n5/lasso_feature_importance.csv", index=False)
+print("✅ Lasso筛选后的特征数量：", len(selected_features))
+
+# === 4. Minimal Depth 计算函数 ===
+def compute_minimal_depth(model, feature_names):
+    def traverse_tree(tree, node_id=0, depth=0, found={}):
+        feature = tree.feature[node_id]
+        if feature != -2:
+            f_name = feature_names[feature]
+            if f_name not in found:
+                found[f_name] = depth
+            traverse_tree(tree, tree.children_left[node_id], depth + 1, found)
+            traverse_tree(tree, tree.children_right[node_id], depth + 1, found)
+
+    all_depths = defaultdict(list)
+    for estimator in model.estimators_:
+        tree = estimator.tree_
+        found = {}
+        traverse_tree(tree, node_id=0, depth=0, found=found)
+        for f, d in found.items():
+            all_depths[f].append(d)
+
+    avg_min_depth = {f: np.mean(d) for f, d in all_depths.items()}
+    return pd.Series(avg_min_depth).sort_values()
+
+# === 5. 定义调参空间 ===
+param_dist = {
+    'n_estimators': randint(100, 1000),
+    'max_depth': [None] + list(range(5, 40, 5)),
+    'min_samples_split': randint(2, 10),
+    'min_samples_leaf': randint(1, 5),
+    'max_features': ['sqrt', 'log2']
+}
+
+print("\n🚀 开始基于 Minimal Depth 的逐步特征选择与调参...\n")
+
+# === 6. 逐轮降维 + 每轮重算 Minimal Depth 排序 ===
+best_auc = 0
+best_features = []
+best_params_overall = {}
+auc_record = []
+
+current_candidate_features = selected_features.tolist()
+
+for k in range(len(current_candidate_features), 4, -1):
+    # 当前轮次使用的特征子集
+    X_train_k = X_train[current_candidate_features]
+
+    # 重新训练 RF 并计算 Minimal Depth
+    md_model_k = RandomForestClassifier(n_estimators=200, max_depth=None, random_state=42)
+    md_model_k.fit(X_train_k, y_train)
+    min_depth_k = compute_minimal_depth(md_model_k, current_candidate_features)
+
+    ranked_features_k = min_depth_k.index.tolist()
+    current_features = ranked_features_k[:k]
+
+    # 用当前特征做调参
+    X_train_sub = X_train[current_features]
+    X_test_sub = X_test[current_features]
+
+    rf = RandomForestClassifier(random_state=42)
+    random_search = RandomizedSearchCV(
+        rf, param_distributions=param_dist,
+        n_iter=30, scoring='roc_auc', cv=5,
+        random_state=42, n_jobs=-1, verbose=0
+    )
+    random_search.fit(X_train_sub, y_train)
+    best_model = random_search.best_estimator_
+    best_params = random_search.best_params_
+
+    y_proba = best_model.predict_proba(X_test_sub)[:, 1]
+    y_pred = best_model.predict(X_test_sub)
+    auc = roc_auc_score(y_test, y_proba)
+    recall = recall_score(y_test, y_pred)
+
+    print(f"✅ Top-{k} 特征 AUC: {auc:.4f}, Recall: {recall:.4f}")
+
+    # 保存特征重要性
+    importances = best_model.feature_importances_
+    rf_importance = pd.DataFrame({
+        "Feature": current_features,
+        "Importance": importances
+    }).sort_values("Importance", ascending=False)
+    rf_importance.to_csv(f"python-train-model/output/results/n5/rf_feature_importance_top_{k}.csv", index=False)
+
+    # 绘制特征重要性图表
+    plt.figure(figsize=(10, 6))
+    plt.barh(rf_importance["Feature"], rf_importance["Importance"])
+    plt.xlabel("Feature Importance")
+    plt.ylabel("Feature Name")
+    plt.title(f"Top-{k} Feature Importance Ranking")
+    plt.tight_layout()
+    plt.savefig(f"python-train-model/output/results/n5/feature_importance_plot_top_{k}.png")
+    plt.close()
+
+    # 保存 SHAP 图
+    explainer = shap.TreeExplainer(best_model)
+    shap_values = explainer.shap_values(X_test_sub)
+
+    # 检查SHAP值的结构
+    # RandomForest分类器的TreeExplainer返回的shap_values可能有不同的结构
+    # 如果是列表，则第二个元素是正类的SHAP值
+    # 如果是三维数组，则第三维的第二个元素是正类的SHAP值
+
+    # 保存用于绘图的SHAP值
+    if isinstance(shap_values, list):
+        # 如果是列表形式 [负类值, 正类值]
+        plot_shap_values = shap_values[1]  # 正类的SHAP值
+    else:
+        # 如果是三维数组
+        plot_shap_values = shap_values[:, :, 1]  # 正类的SHAP值
+
+    # 保存 SHAP 图
+    plt.figure()
+    shap.summary_plot(plot_shap_values, X_test_sub, plot_type="bar", show=False)
+    plt.tight_layout()
+    plt.savefig(f"python-train-model/output/shap_plots/n5/shap_summary_top_{k}.png")
+    plt.close()
+
+    # 计算并保存SHAP值的平均绝对值（即条形图中显示的值）
+    # 这些值与条形图中的长度对应
+    shap_summary = pd.DataFrame({
+        "Feature": current_features,
+        "Mean_Absolute_SHAP": np.abs(plot_shap_values).mean(axis=0)  # 计算每个特征的SHAP值平均绝对值
+    }).sort_values("Mean_Absolute_SHAP", ascending=False)  # 按平均绝对SHAP值降序排列
+
+    # 保存SHAP摘要统计值
+    shap_summary.to_csv(f"python-train-model/output/shap_plots/n5/shap_summary_top_{k}.csv", index=False)
+
+    auc_record.append({
+        "Num_Features": k,
+        "AUC": auc,
+        "Recall": recall,
+        "Features": current_features,
+        "Best_Params": best_params
+    })
+
+    if auc > best_auc:
+        best_auc = auc
+        best_features = current_features
+        best_params_overall = best_params
+
+    current_candidate_features = current_features
+
+# === 7. 保存所有轮次结果 ===
+result_df = pd.DataFrame(auc_record)
+result_df.to_csv("python-train-model/output/results/n5/feature_selection_results.csv", index=False)
+
+# === 8. 绘图展示 ===
+plt.figure(figsize=(10, 5))
+plt.plot(result_df["Num_Features"], result_df["AUC"], marker='o', label='AUC')
+plt.plot(result_df["Num_Features"], result_df["Recall"], marker='s', label='Recall', linestyle='--')
+plt.xlabel("Number of Features")
+plt.ylabel("Score")
+plt.title("AUC & Recall vs. Number of Features")
+plt.gca().invert_xaxis()
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.savefig("python-train-model/output/results/n5/auc_recall_plot.png")
+plt.show()
+
+# === 9. 总结 ===
+print("\n🎯 最优结果：")
+print("✅ 最佳特征数量：", len(best_features))
+print("✅ 最佳AUC：", round(best_auc, 4))
+print("✅ 最佳特征组合：", best_features)
+print("✅ 对应最优参数：", best_params_overall)
+
+9.2. Python模型训练 (python-train-model/model_compare_2.py)
+-----------------------------------------------
+
+# 前略：原始 import 保持不变
+
+import pandas as pd
+import numpy as np
+import os
+import joblib
+import warnings
+import m2cgen as m2c
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import roc_auc_score, recall_score, accuracy_score, make_scorer, confusion_matrix
+from sklearn.ensemble import (
+    RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier,
+    AdaBoostClassifier, BaggingClassifier, HistGradientBoostingClassifier
+)
+from sklearn.linear_model import (
+    LogisticRegression, RidgeClassifier, SGDClassifier,
+    PassiveAggressiveClassifier, Perceptron
+)
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB, BernoulliNB, MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+import onnxruntime as rt
+
+warnings.filterwarnings('ignore')
+
+
+def load_and_preprocess_data(train_path, test_path, features, random_state=5):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    X_train = train_df[features]
+    y_train = train_df["Group"].map({1: 0, 2: 1})
+
+    X_test = test_df[features]
+    y_test = test_df["Group"].map({1: 0, 2: 1})
+
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # 打印均值和标准差
+    means = scaler.mean_.tolist()
+    stds = scaler.scale_.tolist()
+    print("Means:", means)
+    print("Stds:", stds)
+
+    return X_train_scaled, X_test_scaled, y_train, y_test
+
+
+def get_models_and_params():
+    return {
+        "ExtraTrees": {
+            "model": ExtraTreesClassifier(random_state=42),
+            "params": {"n_estimators": [100], "max_depth": [None, 10]}
+        },
+        "RandomForest": {
+            "model": RandomForestClassifier(random_state=42),
+            "params": {"n_estimators": [100], "max_depth": [None, 10]}
+        },
+        "GradientBoosting": {
+            "model": GradientBoostingClassifier(random_state=42),
+            "params": {"n_estimators": [100], "learning_rate": [0.1]}
+        },
+        "XGBoost": {
+            "model": XGBClassifier(random_state=42),
+            "params": {"n_estimators": [100], "max_depth": [3], "learning_rate": [0.1]}
+        },
+        "LightGBM": {
+            "model": LGBMClassifier(random_state=42),
+            "params": {"n_estimators": [100], "learning_rate": [0.1]}
+        },
+        "LogisticRegression": {
+            "model": LogisticRegression(random_state=42, solver="liblinear"),
+            "params": {"C": [1.0], "penalty": ["l2"]}
+        },
+        "SVM": {
+            "model": SVC(random_state=42, probability=True),
+            "params": {"C": [1.0], "kernel": ["rbf"]}
+        },
+        "AdaBoost": {
+            "model": AdaBoostClassifier(random_state=42),
+            "params": {"n_estimators": [50]}
+        },
+        "Bagging": {
+            "model": BaggingClassifier(random_state=42),
+            "params": {"n_estimators": [10]}
+        },
+        "HistGradientBoosting": {
+            "model": HistGradientBoostingClassifier(random_state=42),
+            "params": {"max_iter": [100]}
+        },
+        "GaussianNB": {
+            "model": GaussianNB(),
+            "params": {}
+        },
+        "BernoulliNB": {
+            "model": BernoulliNB(),
+            "params": {"alpha": [1.0]}
+        },
+        "MultinomialNB": {
+            "model": MultinomialNB(),
+            "params": {"alpha": [1.0]}
+        },
+        "KNN": {
+            "model": KNeighborsClassifier(),
+            "params": {"n_neighbors": [5]}
+        },
+        "MLP": {
+            "model": MLPClassifier(random_state=42, max_iter=500),
+            "params": {"hidden_layer_sizes": [(100,)]}
+        },
+        "DecisionTree": {
+            "model": DecisionTreeClassifier(random_state=42),
+            "params": {"max_depth": [10]}
+        },
+        "QDA": {
+            "model": QuadraticDiscriminantAnalysis(),
+            "params": {}
+        }
+    }
+
+
+def main():
+    features = ["var1", "var3", "var4", "var39", "var42"]
+    X_train_scaled, X_test_scaled, y_train, y_test = load_and_preprocess_data(
+        "python-train-model/data/Train_expr.csv", "python-train-model/data/Test_expr.csv", features
+    )
+
+    models = get_models_and_params()
+    results = []
+    confusion_matrices = {}  # 用于汇总子图拼接
+    scoring = {
+        'auc': make_scorer(roc_auc_score, needs_proba=True),
+        'recall': make_scorer(recall_score)
+    }
+
+    output_dir = "python-train-model/saved_models"
+    os.makedirs(output_dir, exist_ok=True)
+
+    for name, model_info in models.items():
+        print(f"\n=== Training {name} ===")
+        try:
+            grid_search = GridSearchCV(
+                estimator=model_info["model"],
+                param_grid=model_info["params"],
+                scoring=scoring,
+                refit='auc',
+                cv=5,
+                n_jobs=-1,
+                verbose=0
+            )
+            grid_search.fit(X_train_scaled, y_train)
+
+            # Train Set
+            y_train_pred = grid_search.predict(X_train_scaled)
+            y_train_prob = grid_search.predict_proba(X_train_scaled)[:, 1] if hasattr(grid_search.best_estimator_, 'predict_proba') else None
+            train_auc = roc_auc_score(y_train, y_train_prob) if y_train_prob is not None else np.nan
+            train_recall = recall_score(y_train, y_train_pred)
+            train_accuracy = accuracy_score(y_train, y_train_pred)
+            cm_train = confusion_matrix(y_train, y_train_pred)
+            tn_train, fp_train, fn_train, tp_train = cm_train.ravel() if cm_train.shape == (2, 2) else (np.nan,)*4
+            train_specificity = tn_train / (tn_train + fp_train) if (tn_train + fp_train) > 0 else np.nan
+
+            # Test Set
+            y_pred = grid_search.predict(X_test_scaled)
+            y_prob = grid_search.predict_proba(X_test_scaled)[:, 1] if hasattr(grid_search.best_estimator_, 'predict_proba') else None
+            test_auc = roc_auc_score(y_test, y_prob) if y_prob is not None else np.nan
+            test_recall = recall_score(y_test, y_pred)
+            test_accuracy = accuracy_score(y_test, y_pred)
+            cm_test = confusion_matrix(y_test, y_pred)
+            confusion_matrices[name] = cm_test
+            tn_test, fp_test, fn_test, tp_test = cm_test.ravel() if cm_test.shape == (2, 2) else (np.nan,)*4
+            test_specificity = tn_test / (tn_test + fp_test) if (tn_test + fp_test) > 0 else np.nan
+
+            # 保存混淆矩阵 CSV
+            cm_df = pd.DataFrame(cm_test, index=['Actual 0', 'Actual 1'], columns=['Predicted 0', 'Predicted 1'])
+            cm_df.to_csv(os.path.join(output_dir, f"{name}_confusion_matrix.csv"))
+
+            # 单独绘图
+            plt.figure(figsize=(4, 3))
+            plt.imshow(cm_test, interpolation='nearest', cmap=plt.cm.Blues)
+            plt.title(f"{name} Confusion Matrix")
+            plt.colorbar()
+            tick_marks = np.arange(2)
+            plt.xticks(tick_marks, ['Pred 0', 'Pred 1'])
+            plt.yticks(tick_marks, ['True 0', 'True 1'])
+            thresh = cm_test.max() / 2.
+            for i, j in np.ndindex(cm_test.shape):
+                plt.text(j, i, format(cm_test[i, j], 'd'),
+                         ha="center", va="center",
+                         color="white" if cm_test[i, j] > thresh else "black")
+            plt.tight_layout()
+            plt.savefig(os.path.join(output_dir, f"{name}_confusion_matrix.png"))
+            plt.close()
+
+            # 保存模型
+            joblib.dump(grid_search.best_estimator_, os.path.join(output_dir, f"{name}.pkl"))
+
+            # JavaScript + ONNX 处理（略）
+
+            results.append({
+                'Model': name,
+                'Best Parameters': grid_search.best_params_,
+                'Train AUC Score': train_auc,
+                'Train Sensitivity': train_recall,
+                'Train Specificity': train_specificity,
+                'Train Accuracy': train_accuracy,
+                'Test AUC Score': test_auc,
+                'Test Sensitivity': test_recall,
+                'Test Specificity': test_specificity,
+                'Test Accuracy': test_accuracy
+            })
+
+        except Exception as e:
+            print(f"{name} failed: {str(e)}")
+
+    # 排序输出
+    results_df = pd.DataFrame(results)
+    results_df = results_df.sort_values('Test AUC Score', ascending=False)
+    results_df.to_csv("python-train-model/output/results/model_comparison_results.csv", index=False)
+
+    # 🔥 汇总所有混淆矩阵拼图展示
+    num_models = len(confusion_matrices)
+    cols = 3
+    rows = (num_models + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 4, rows * 4))
+    axes = axes.flatten()
+    for i, (model_name, cm) in enumerate(confusion_matrices.items()):
+        ax = axes[i]
+        ax.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+        ax.set_title(model_name)
+        ax.set_xticks(np.arange(2))
+        ax.set_yticks(np.arange(2))
+        ax.set_xticklabels(['Pred 0', 'Pred 1'])
+        ax.set_yticklabels(['True 0', 'True 1'])
+        for j, k in np.ndindex(cm.shape):
+            ax.text(k, j, format(cm[j, k], 'd'), ha="center", va="center",
+                    color="white" if cm[j, k] > cm.max() / 2. else "black")
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "all_confusion_matrices.png"))
+    plt.close()
+
+
+if __name__ == "__main__":
+    main()
+
+10. 自动部署配置 (.github/workflows/deploy.yml)
+-----------------------------------------------
+
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+
+      - name: Install dependencies
+        uses: bahmutov/npm-install@v1
+
+      - name: Build project
+        run: npm run build
+
+      - name: Upload production-ready build files
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-files
+          path: ./dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: production-files
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
